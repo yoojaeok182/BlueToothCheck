@@ -2,4 +2,11 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="color_base_gauge_chart_bg">#00E8FF</color>
+    <color name="color_gauge_chart">#007EFF</color>
+
+    <color name="color_base_gauge_chart_bg_02">#3BB457</color>
+    <color name="color_gauge_chart_02">#CBF000</color>
+
 </resources>

@@ -252,7 +252,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="140dp">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 app:layout_constraintTop_toTopOf="parent"
@@ -275,23 +275,22 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
-                <!--<com.example.gauge.CustomGaugeView
-                    android:id="@+id/gaugeView"
-                    android:layout_width="300dp"
-                    android:layout_height="150dp"
-                    android:layout_gravity="center" />-->
-                <com.github.mikephil.charting.charts.PieChart
+                <com.bluetooth.chart.module.chart.GaugeViewChart
                     android:id="@+id/chart1"
+                    android:layout_marginTop="10dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/tvInverterPerTitle"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-
-                    android:layout_width="match_parent"
-                    android:layout_height="100dp"/>
+                    android:layout_width="160dp"
+                    android:layout_height="100dp"
+                    app:gaugeColor="@color/color_gauge_chart"
+                    app:baseGaugeColor="@color/color_base_gauge_chart_bg"
+                    android:layout_gravity="center" />
 
                 <TextView
+                    app:layout_constraintBottom_toBottomOf="parent"
                     android:includeFontPadding="false"
-                    app:layout_constraintTop_toBottomOf="@id/chart1"
                     android:text="0%"
                     android:textColor="@color/white"
                     android:textSize="13sp"
@@ -323,18 +322,22 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
 
-                <com.github.mikephil.charting.charts.PieChart
+                <com.bluetooth.chart.module.chart.GaugeViewChart
                     android:id="@+id/chart2"
+                    android:layout_marginTop="10dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/tvCurrentPowerOutputTitle"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-
-                    android:layout_width="match_parent"
-                    android:layout_height="100dp"/>
+                    android:layout_width="160dp"
+                    android:layout_height="100dp"
+                    app:gaugeColor="@color/color_gauge_chart"
+                    app:baseGaugeColor="@color/color_base_gauge_chart_bg"
+                    android:layout_gravity="center" />
 
                 <TextView
+                    app:layout_constraintBottom_toBottomOf="parent"
                     android:includeFontPadding="false"
-                    app:layout_constraintTop_toBottomOf="@id/chart2"
                     android:text="0%"
                     android:textColor="@color/white"
                     android:textSize="13sp"
@@ -343,6 +346,8 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
+
+
             </androidx.constraintlayout.widget.ConstraintLayout>
             <androidx.constraintlayout.widget.ConstraintLayout
                 app:layout_constraintTop_toTopOf="parent"
@@ -366,18 +371,22 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
 
-                <com.github.mikephil.charting.charts.PieChart
+                <com.bluetooth.chart.module.chart.GaugeViewChart
                     android:id="@+id/chart3"
+                    android:layout_marginTop="10dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/tvPowerGenerationEfciencyTitle"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-
-                    android:layout_width="match_parent"
-                    android:layout_height="100dp"/>
+                    android:layout_width="160dp"
+                    android:layout_height="100dp"
+                    app:gaugeColor="@color/color_gauge_chart"
+                    app:baseGaugeColor="@color/color_base_gauge_chart_bg"
+                    android:layout_gravity="center" />
 
                 <TextView
+                    app:layout_constraintBottom_toBottomOf="parent"
                     android:includeFontPadding="false"
-                    app:layout_constraintTop_toBottomOf="@id/chart3"
                     android:text="0%"
                     android:textColor="@color/white"
                     android:textSize="13sp"
@@ -386,6 +395,7 @@
                     app:layout_constraintEnd_toEndOf="parent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
+
             </androidx.constraintlayout.widget.ConstraintLayout>
 
 
@@ -399,7 +409,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             android:layout_width="match_parent"
-            android:layout_height="0dp">
+            android:layout_height="218dp">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/powerGLayout"
