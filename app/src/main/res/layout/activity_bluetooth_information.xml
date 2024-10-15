@@ -109,7 +109,7 @@
                 android:id="@+id/tvInformation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Scanner"
+                android:text="Information"
                 android:textColor="@color/white"
                 android:textSize="16sp"
                 app:layout_constraintBottom_toBottomOf="parent"

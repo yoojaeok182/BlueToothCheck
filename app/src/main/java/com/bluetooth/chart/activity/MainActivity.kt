@@ -140,33 +140,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // 페어링 상태 변화 감지 (브로드캐스트 리시버)
-    private val pairingReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val action = intent.action
-            if (BluetoothDevice.ACTION_BOND_STATE_CHANGED == action) {
-                val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                val bondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR)
-                val prevBondState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, BluetoothDevice.ERROR)
 
-                when (bondState) {
-                    BluetoothDevice.BOND_BONDED -> {
-                        // 페어링 완료 후 연결 시작
-                        Toast.makeText(context, "Device paired", Toast.LENGTH_SHORT).show()
-                        device?.let {
-                            BlueToothParingUtil.connectToDevice(this@MainActivity,device)
-                        }
-                    }
-                    BluetoothDevice.BOND_BONDING -> {
-                        Toast.makeText(context, "Pairing in progress", Toast.LENGTH_SHORT).show()
-                    }
-                    BluetoothDevice.BOND_NONE -> {
-                        Toast.makeText(context, "Pairing failed or removed", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -177,7 +151,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom)
             insets
         }
         // 블루투스 어댑터 초기화
@@ -241,29 +215,7 @@ class MainActivity : AppCompatActivity() {
                 intent.putExtra("blueToothData", blueToothInfoModel)
                 startActivity(intent)
 
-                /*val device = bluetoothAdapter.getRemoteDevice(item.address)
-                if (ActivityCompat.checkSelfPermission(
-                        this@MainActivity,
-                        Manifest.permission.BLUETOOTH_CONNECT
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
-                    ActivityCompat.requestPermissions(this@MainActivity,
-                        arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 11)
-                    return
-                }
-                if(device.bondState != BluetoothDevice.BOND_BONDED){
-                    BlueToothParingUtil.pairDevice(device)
-                }else{
-                    BlueToothParingUtil.connectToDevice(this@MainActivity,device)
 
-                }*/
             }
 
         }
@@ -321,6 +273,9 @@ class MainActivity : AppCompatActivity() {
                 result: ActivityResult ->
             if (result.resultCode == Activity.RESULT_OK) {
                 Toast.makeText(this, "수신 성공", Toast.LENGTH_SHORT).show()
+                binding.recyclerView.visibility = View.VISIBLE
+                binding.btnBlueToothServiceConnect.visibility = View.GONE
+
             }
             else {
                 Toast.makeText(this, "수신 실패", Toast.LENGTH_SHORT).show()
@@ -359,16 +314,5 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    override fun onStart() {
-        super.onStart()
-        // 페어링 상태 변경 리시버 등록
-        val filter = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
-        registerReceiver(pairingReceiver, filter)
-    }
 
-    override fun onStop() {
-        super.onStop()
-        // 리시버 해제
-        unregisterReceiver(pairingReceiver)
-    }
 }
