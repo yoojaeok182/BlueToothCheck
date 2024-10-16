@@ -207,6 +207,7 @@ class MainActivity : AppCompatActivity() {
             override fun onItemParing(item: BlueToothInfoModel, position: Int) {
                 blueToothInfoModel  = item
 
+
                 if (blueToothInfoModel == null){
                     Toast.makeText(this@MainActivity,"불루투스 가 선택되지 않았습니다.",Toast.LENGTH_SHORT).show()
                     return
