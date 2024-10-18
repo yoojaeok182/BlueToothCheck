@@ -42,7 +42,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        enableEdgeToEdge()
+//        enableEdgeToEdge()
 
         binding = ActivityBluetoothChartBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -63,6 +63,9 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         binding.chart3.value = 0f
         binding.tvPowerGenerationEfciency.text = "0%"
 
+        binding.ivExst.setOnClickListener {
+            finish()
+        }
         // CombinedChart 초기화
         combinedChart = binding.chart4
         setupCombinedChart()
@@ -100,13 +103,13 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         barDataSet.setDrawValues(false) // 막대형 차트의 값 비활성화
 
         // X축을 30초 단위로 표시되도록 설정
-        xAxis.granularity = 30f // 30초 간격으로 X축에 데이터 추가
+        xAxis.granularity = 3600f // 30초 간격으로 X축에 데이터 추가
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
                 // 30초 단위의 시간을 "MM:ss" 형식으로 표시
-                val timeInSeconds = value * 30
-                val minutes = (timeInSeconds / 60).toInt()
-                val seconds = (timeInSeconds % 60).toInt()
+                val timeInSeconds = value * 3600
+                val minutes = (timeInSeconds / 3600).toInt()
+                val seconds = (timeInSeconds % 3600 / 60).toInt()
                 return String.format("%02d:%02d", minutes, seconds)
             }
         }
@@ -183,6 +186,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         // 두 번째 데이터 표시
         binding.chart2.value = thirdData
         binding.tvCurrentPowerOutputPer.text = "$thirdData kW"
+        binding.tvCurrentOutPut.text = "$thirdData"
 
         // 세 번째 데이터: 네 번째 데이터 / 첫 번째 데이터 비율 계산 및 표시
         val efficiency = if (firstData != 0f) {
@@ -196,7 +200,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         // 네 번째 데이터 평균 계산
         dailyFourthDataList.add(fourthData)
         val averageFourthData = dailyFourthDataList.sum() / dailyFourthDataList.size
-        binding.tvTodayPower.text = "$averageFourthData kWh"
+        binding.tvTodayPower.text = "$averageFourthData"
 
         // 현재 시간 표시
         val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
@@ -251,11 +255,11 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     // 버튼 색상 업데이트
     private fun updateButtonColors(firstData: Float) {
         if (firstData > 0) {
-            binding.gridConnectBtn.setBackgroundColor(ContextCompat.getColor(this, R.color.color_gauge_chart))
-            binding.upsStandAloneBtn.setBackgroundColor(ContextCompat.getColor(this, R.color.color_gauge_chart_02))
+            binding.gridConnectBtn.setBackgroundResource(R.drawable.gradient_color_01)
+            binding.upsStandAloneBtn.setBackgroundResource(R.drawable.gradient_color_02)
         } else {
-            binding.gridConnectBtn.setBackgroundColor(ContextCompat.getColor(this, R.color.color_gauge_chart_02))
-            binding.upsStandAloneBtn.setBackgroundColor(ContextCompat.getColor(this, R.color.color_gauge_chart))
+            binding.gridConnectBtn.setBackgroundResource(R.drawable.gradient_color_02)
+            binding.upsStandAloneBtn.setBackgroundResource(R.drawable.gradient_color_01)
         }
     }
 

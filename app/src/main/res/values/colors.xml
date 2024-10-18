@@ -4,10 +4,22 @@
     <color name="white">#FFFFFFFF</color>
     <color name="colorPrimary">#0C112C</color>
 
-    <color name="color_base_gauge_chart_bg">#00E8FF</color>
-    <color name="color_gauge_chart">#007EFF</color>
+    <color name="color_base_gauge_chart_bg">#264a3e</color>
+    <color name="color_gauge_chart">#33dda2</color>
 
-    <color name="color_base_gauge_chart_bg_02">#3BB457</color>
-    <color name="color_gauge_chart_02">#CBF000</color>
+
+
+    <color name="color_base_gauge_chart_bg_02">#444933</color>
+    <color name="color_gauge_chart_02">#3994c1</color>
+
+    <color name="color_base_gauge_chart_bg_03">#243841</color>
+    <color name="color_gauge_chart_03">#CBF000</color>
+    <color name="color_01">#90b85f</color>
+    <color name="color_02">#418e93</color>
+    <color name="color_3">#70aca2</color>
+    <color name="color_4">#b3c49c</color>
+    <color name="color_5">#759ba9</color>
+    <color name="color_6">#52857D</color>
+
 
 </resources>

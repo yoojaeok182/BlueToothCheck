@@ -3,6 +3,8 @@
 	<declare-styleable name="GaugeViewChart">
 		<attr name="gaugeColor" format="color" />
 		<attr name="baseGaugeColor" format="color" />
+
+
 	</declare-styleable>
 </resources>
 
