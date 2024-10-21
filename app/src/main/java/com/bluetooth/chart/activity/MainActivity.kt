@@ -77,13 +77,6 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                 }
-                var uuids: Array<ParcelUuid>? = null
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    uuids =  intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID, BluetoothDevice::class.java) as Array<ParcelUuid>?
-                } else {
-                    uuids =  intent.getParcelableArrayExtra(BluetoothDevice.EXTRA_UUID)as Array<ParcelUuid>?
-                }
 
 
                 device?.let {

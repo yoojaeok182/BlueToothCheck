@@ -1,48 +1,57 @@
 package com.bluetooth.chart.activity
 
+import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.bluetooth.chart.R
 import com.bluetooth.chart.databinding.ActivityBluetoothChartBinding
+import com.bluetooth.chart.module.data.BlueToothInfoModel
 import com.github.mikephil.charting.charts.CombinedChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.ValueFormatter
 import kotlinx.coroutines.*
+import java.io.IOException
+import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
 class BlueToothDetailChartActivity : AppCompatActivity() {
     private lateinit var binding: ActivityBluetoothChartBinding
     private lateinit var bluetoothAdapter: BluetoothAdapter
+    private lateinit var bluetoothSocket: BluetoothSocket
+    private lateinit var inputStream: InputStream
     private lateinit var combinedChart: CombinedChart
     private lateinit var lineDataSet: LineDataSet
-    private lateinit var barDataSet: BarDataSet // 막대형 데이터셋 추가
+    private lateinit var barDataSet: BarDataSet
 
     private val scope = CoroutineScope(Dispatchers.Main)
     private var isReceivingData = false
 
-    // 네 번째 데이터 평균 계산을 위한 리스트
     private val dailyFourthDataList = mutableListOf<Float>()
     private var currentXValue: Float = 0f // X축 값
 
     private var dataBuffer = mutableListOf<List<Float>>() // 30초 동안 데이터를 버퍼에 저장
     private val chartUpdateInterval = 30_000L // 30초
     private var isFirstDataReceived = false // 첫 번째 데이터 수신 확인 플래그
+    private var blueToothInfoModel : BlueToothInfoModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-//        enableEdgeToEdge()
 
         binding = ActivityBluetoothChartBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -52,6 +61,19 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     }
 
     private fun init() {
+
+        val intent = intent
+        if (intent.hasExtra("blueToothData")) {
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                blueToothInfoModel = intent.getSerializableExtra("blueToothData", BlueToothInfoModel::class.java)
+            }else{
+                blueToothInfoModel =
+                    intent.extras!!.getSerializable("blueToothData") as BlueToothInfoModel?
+            }
+
+        }
+
         // UI 초기화
         binding.tvCurrentOutPut.text = ""
         binding.tvTodayPower.text = ""
@@ -66,6 +88,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         binding.ivExst.setOnClickListener {
             finish()
         }
+
         // CombinedChart 초기화
         combinedChart = binding.chart4
         setupCombinedChart()
@@ -77,6 +100,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             return
         }
 
+        connectToBluetoothDevice() // Bluetooth 디바이스 연결
         startReceivingBluetoothData() // Bluetooth 데이터 수신 시작
     }
 
@@ -102,16 +126,51 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         barDataSet.color = ContextCompat.getColor(this, R.color.color_base_gauge_chart_bg_02)
         barDataSet.setDrawValues(false) // 막대형 차트의 값 비활성화
 
-        // X축을 30초 단위로 표시되도록 설정
-        xAxis.granularity = 3600f // 30초 간격으로 X축에 데이터 추가
+        // X축을 시간 단위로 표시되도록 설정
+        xAxis.granularity = 30f // 30초 간격으로 X축에 데이터 추가
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
-                // 30초 단위의 시간을 "MM:ss" 형식으로 표시
-                val timeInSeconds = value * 3600
-                val minutes = (timeInSeconds / 3600).toInt()
-                val seconds = (timeInSeconds % 3600 / 60).toInt()
+                val timeInSeconds = (value * 30).toInt() // 30초 간격
+                val minutes = (timeInSeconds / 60) % 60
+                val seconds = timeInSeconds % 60
                 return String.format("%02d:%02d", minutes, seconds)
             }
+        }
+    }
+
+    // Bluetooth 디바이스에 연결
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun connectToBluetoothDevice() {
+        if(blueToothInfoModel == null){
+            Toast.makeText(this, "Bluetooth 연결 실패", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            ActivityCompat.requestPermissions(this@BlueToothDetailChartActivity,
+                arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
+            return
+        }
+
+        val device: BluetoothDevice = bluetoothAdapter.getRemoteDevice(blueToothInfoModel!!.address) // 실제 디바이스 주소로 변경
+        val uuid = device.uuids[0].uuid // 디바이스의 UUID 가져오기
+        try {
+            bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid)
+            bluetoothSocket.connect()
+            inputStream = bluetoothSocket.inputStream // InputStream 초기화
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Toast.makeText(this, "Bluetooth 연결 실패", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -158,17 +217,30 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
     }
 
-    // Bluetooth 데이터 받아오는 메소드 (임의로 리스트 반환)
+    // Bluetooth 데이터 받아오는 메소드
     private fun getBluetoothDataList(): List<Float> {
-        // 실제 구현에서는 BluetoothDevice로부터 데이터를 받는 로직 추가
-        // 랜덤값 생성 (0.0f에서 100.0f 사이의 float 값)
-        val random = Random()
-        val random1 = Random()
+        val buffer = ByteArray(1024) // Bluetooth로부터 데이터를 받을 버퍼
+        var bytesRead: Int
+        val receivedDataList = mutableListOf<Float>()
 
-        val randomData1 = random.nextFloat() * 100 // 0 ~ 100
-        val randomData4 = random1.nextFloat() * 100 // 0 ~ 100
+        try {
+            // InputStream에서 데이터 읽기
+            bytesRead = inputStream.read(buffer)
+            if (bytesRead > 0) {
+                val receivedData = String(buffer, 0, bytesRead).trim() // 받은 데이터를 문자열로 변환
+                val dataArray = receivedData.split(",") // 쉼표로 데이터를 분리
+                for (data in dataArray) {
+                    val value = data.trim().toFloatOrNull() // 문자열을 float로 변환
+                    if (value != null) {
+                        receivedDataList.add(value)
+                    }
+                }
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
 
-        return listOf(randomData1, 25.0f, 65.0f, randomData4)
+        return receivedDataList // 데이터를 리스트로 반환
     }
 
     // Bluetooth 데이터 처리
@@ -183,12 +255,12 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         binding.chart1.value = firstData
         binding.tvInverterPer.text = "$firstData %"
 
-        // 두 번째 데이터 표시
+        // 세 번째 데이터 표시
         binding.chart2.value = thirdData
         binding.tvCurrentPowerOutputPer.text = "$thirdData kW"
         binding.tvCurrentOutPut.text = "$thirdData"
 
-        // 세 번째 데이터: 네 번째 데이터 / 첫 번째 데이터 비율 계산 및 표시
+        // 네 번째 데이터 비율 계산
         val efficiency = if (firstData != 0f) {
             minOf(fourthData / firstData * 100, 100f) // 최대 100%로 제한
         } else {
@@ -199,7 +271,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
         // 네 번째 데이터 평균 계산
         dailyFourthDataList.add(fourthData)
-        val averageFourthData = dailyFourthDataList.sum() / dailyFourthDataList.size
+        val averageFourthData = dailyFourthDataList.average().toFloat()
         binding.tvTodayPower.text = "$averageFourthData"
 
         // 현재 시간 표시
