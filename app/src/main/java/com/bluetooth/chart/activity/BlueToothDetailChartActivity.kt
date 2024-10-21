@@ -139,7 +139,6 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     }
 
     // Bluetooth 디바이스에 연결
-    @RequiresApi(Build.VERSION_CODES.S)
     private fun connectToBluetoothDevice() {
         if(blueToothInfoModel == null){
             Toast.makeText(this, "Bluetooth 연결 실패", Toast.LENGTH_SHORT).show()
