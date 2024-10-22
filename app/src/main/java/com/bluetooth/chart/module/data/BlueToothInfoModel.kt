@@ -13,4 +13,5 @@ class BlueToothInfoModel : Serializable {
     var address =""
     var deviceMajorClass  = ""
     var isOpen = false
+
 }

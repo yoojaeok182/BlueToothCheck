@@ -10,6 +10,7 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -101,7 +102,6 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
 
         connectToBluetoothDevice() // Bluetooth 디바이스 연결
-        startReceivingBluetoothData() // Bluetooth 데이터 수신 시작
     }
 
     // CombinedChart 설정
@@ -162,11 +162,17 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
 
         val device: BluetoothDevice = bluetoothAdapter.getRemoteDevice(blueToothInfoModel!!.address) // 실제 디바이스 주소로 변경
-        val uuid = device.uuids[0].uuid // 디바이스의 UUID 가져오기
+        Log.e("BluetoothData", " [uuid :${blueToothInfoModel!!.uuid}]")
         try {
-            bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid)
+            bluetoothSocket = device.createRfcommSocketToServiceRecord(UUID.fromString(blueToothInfoModel!!.uuid))
             bluetoothSocket.connect()
             inputStream = bluetoothSocket.inputStream // InputStream 초기화
+            if (bluetoothSocket != null && bluetoothSocket.isConnected) {
+                inputStream = bluetoothSocket.inputStream
+                startReceivingBluetoothData() // Bluetooth 데이터 수신 시작
+            } else {
+                Log.e("Bluetooth", "소켓이 연결되지 않았습니다.")
+            }
         } catch (e: IOException) {
             e.printStackTrace()
             Toast.makeText(this, "Bluetooth 연결 실패", Toast.LENGTH_SHORT).show()
@@ -181,6 +187,23 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             while (isReceivingData) {
                 val newDataValues = getBluetoothDataList()
 
+                if(newDataValues.isEmpty()){
+                    Log.e("BluetoothData", "불루투스 데이터를 받아올수 없어요")
+                    // 데이터 초기화
+                    binding.tvCurrentOutPut.text = "0"
+                    binding.tvTodayPower.text = "0"
+                    binding.tvTodayPowerTime.text = "0"
+                    binding.chart1.value = 0f
+                    binding.tvInverterPer.text = "0%"
+                    binding.chart2.value = 0f
+                    binding.tvCurrentPowerOutputPer.text = "0%"
+                    binding.chart3.value = 0f
+                    binding.tvPowerGenerationEfciency.text = "0%"
+
+                    // 리스트도 초기화
+                    dailyFourthDataList.clear()
+                    return@launch
+                }
                 // 첫 번째 데이터는 즉시 차트에 추가
                 if (!isFirstDataReceived) {
                     processBluetoothData(newDataValues)
@@ -283,6 +306,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
     // 첫 번째 데이터를 즉시 차트에 추가
     private fun addEntryToChartImmediately(data: List<Float>) {
+        if(data.isEmpty()) return
         val fourthData = data[3]
         val averageFourthData = data.average().toFloat()
 
@@ -351,9 +375,9 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             delay(timeUntilMidnight)
 
             // 데이터 초기화
-            binding.tvCurrentOutPut.text = ""
-            binding.tvTodayPower.text = ""
-            binding.tvTodayPowerTime.text = ""
+            binding.tvCurrentOutPut.text = "0"
+            binding.tvTodayPower.text = "0"
+            binding.tvTodayPowerTime.text = "0"
             binding.chart1.value = 0f
             binding.tvInverterPer.text = "0%"
             binding.chart2.value = 0f

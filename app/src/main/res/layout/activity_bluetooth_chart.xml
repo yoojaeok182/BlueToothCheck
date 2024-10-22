@@ -41,13 +41,14 @@
             android:layout_width="0dp"
             android:layout_height="match_parent">
             <ImageView
+                android:layout_marginStart="10dp"
                 android:id="@+id/ivCurrentOuput"
                 app:layout_constraintTop_toTopOf="@id/clCurrentOuput"
                 app:layout_constraintBottom_toBottomOf="@id/clCurrentOuput"
                 app:layout_constraintStart_toStartOf="parent"
-                android:src="@drawable/ic_current_output"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:background="@drawable/ic_current_output"
+                android:layout_width="30dp"
+                android:layout_height="30dp"/>
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/clCurrentOuput"
                 android:paddingEnd="10dp"
@@ -106,9 +107,9 @@
                 app:layout_constraintTop_toTopOf="@id/clTodayPower"
                 app:layout_constraintBottom_toBottomOf="@id/clTodayPower"
                 app:layout_constraintStart_toStartOf="parent"
-                android:src="@drawable/ic_power_generation"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:background="@drawable/ic_power_generation"
+                android:layout_width="30dp"
+                android:layout_height="30dp"/>
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/clTodayPower"
                 android:paddingEnd="10dp"
@@ -167,9 +168,9 @@
                 android:id="@+id/ivTodayPowerTime"
                 app:layout_constraintTop_toTopOf="@id/clTodayPowerTime"
                 app:layout_constraintBottom_toBottomOf="@id/clTodayPowerTime"
-                android:src="@drawable/ic_power_generation_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:background="@drawable/ic_power_generation_time"
+                android:layout_width="30dp"
+                android:layout_height="30dp"/>
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/clTodayPowerTime"
                 android:paddingEnd="10dp"
