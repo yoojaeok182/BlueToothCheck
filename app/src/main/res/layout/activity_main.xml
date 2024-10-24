@@ -14,7 +14,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:id="@+id/titleLayout"
-        android:background="@color/material_dynamic_primary10"
+        android:background="@color/color_7"
         android:layout_width="match_parent"
         android:layout_height="50dp">
         <TextView
@@ -33,7 +33,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:background="@color/material_dynamic_primary10"
+        android:background="@drawable/bg_footer"
         app:layout_constraintBottom_toBottomOf="parent"
         android:id="@+id/bottomNavigationBar"
         android:layout_width="match_parent"
@@ -55,7 +55,7 @@
                 app:layout_constraintBottom_toTopOf="@id/tvScanner"
                 android:id="@+id/ivScanner"
                 android:layout_width="20dp"
-                android:src="@android:drawable/ic_popup_sync"
+                android:src="@drawable/ic_ble_magnifying"
                 android:layout_height="20dp"/>
             <TextView
                 android:id="@+id/tvScanner"
@@ -87,7 +87,7 @@
                 app:layout_constraintBottom_toTopOf="@id/tvInformation"
                 android:id="@+id/ivInformation"
                 android:layout_width="20dp"
-                android:src="@android:drawable/ic_dialog_info"
+                android:src="@drawable/ic_ble_information"
                 android:layout_height="20dp"/>
             <TextView
                 android:id="@+id/tvInformation"
