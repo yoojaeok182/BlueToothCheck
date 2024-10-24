@@ -37,7 +37,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:id="@+id/bottomNavigationBar"
         android:layout_width="match_parent"
-        android:layout_height="80dp">
+        android:paddingBottom="10dp"
+        android:paddingTop="10dp"
+        android:layout_height="wrap_content">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/btnScanner"
@@ -112,19 +114,30 @@
         app:layout_constraintBottom_toTopOf="@id/bottomNavigationBar"
         android:layout_width="match_parent"
         android:layout_height="0dp">
-        <Button
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:visibility="gone"
-            android:textSize="13sp"
-            android:gravity="center"
+            android:background="@drawable/btn_ble_connect"
             android:id="@+id/btnBlueToothServiceConnect"
-            android:textColor="@color/white"
-            android:text="블루투스 연결"
+            android:layout_marginEnd="10dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            android:layout_width="150dp"
-            android:layout_height="48dp"/>
+            android:layout_width="120dp"
+            android:layout_height="40dp">
+            <TextView
+                app:layout_constraintTop_toTopOf="parent"
+                android:gravity="center"
+                android:textStyle="bold"
+                android:text="블루투스 연결"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:textColor="@color/white"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"

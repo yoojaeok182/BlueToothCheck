@@ -17,7 +17,7 @@ class DeviceAdapter(private val deviceList: List<BlueToothInfoModel>) : Recycler
 
     class DeviceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val deviceNameTextView: TextView = itemView.findViewById(R.id.tvBlueThoothName)
-        val deviceConnectBtn: Button = itemView.findViewById(R.id.btnConnect)
+        val deviceConnectBtn: ConstraintLayout = itemView.findViewById(R.id.btnConnect)
         val deviceIco: ImageView = itemView.findViewById(R.id.ivBlueThooth)
         val rootLayout : ConstraintLayout  = itemView.findViewById(R.id.rootLayout)
     }

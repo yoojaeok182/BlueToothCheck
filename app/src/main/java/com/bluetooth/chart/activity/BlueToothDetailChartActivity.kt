@@ -164,15 +164,20 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         val device: BluetoothDevice = bluetoothAdapter.getRemoteDevice(blueToothInfoModel!!.address) // 실제 디바이스 주소로 변경
         Log.e("BluetoothData", " [uuid :${blueToothInfoModel!!.uuid}]")
         try {
-            bluetoothSocket = device.createRfcommSocketToServiceRecord(UUID.fromString(blueToothInfoModel!!.uuid))
-            bluetoothSocket.connect()
-            inputStream = bluetoothSocket.inputStream // InputStream 초기화
-            if (bluetoothSocket != null && bluetoothSocket.isConnected) {
-                inputStream = bluetoothSocket.inputStream
-                startReceivingBluetoothData() // Bluetooth 데이터 수신 시작
-            } else {
+            if(blueToothInfoModel!!.uuid.isNotEmpty()){
+                bluetoothSocket = device.createRfcommSocketToServiceRecord(UUID.fromString(blueToothInfoModel!!.uuid))
+                bluetoothSocket.connect()
+                inputStream = bluetoothSocket.inputStream // InputStream 초기화
+                if (bluetoothSocket != null && bluetoothSocket.isConnected) {
+                    inputStream = bluetoothSocket.inputStream
+                    startReceivingBluetoothData() // Bluetooth 데이터 수신 시작
+                } else {
+                    Log.e("Bluetooth", "소켓이 연결되지 않았습니다.")
+                }
+            }else{
                 Log.e("Bluetooth", "소켓이 연결되지 않았습니다.")
             }
+
         } catch (e: IOException) {
             e.printStackTrace()
             Toast.makeText(this, "Bluetooth 연결 실패", Toast.LENGTH_SHORT).show()
