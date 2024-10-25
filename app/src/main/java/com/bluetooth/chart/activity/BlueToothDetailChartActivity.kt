@@ -88,15 +88,6 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         binding.chart3.value = 0f
         binding.tvPowerGenerationEfciency.text = "0%"
 
-        // 랜덤값 생성 (0.0f에서 100.0f 사이의 float 값)
-        val random = Random()
-        val random1 = Random()
-
-        val randomData1 = random.nextFloat() * 100 // 0 ~ 100
-        val randomData4 = random1.nextFloat() * 100 // 0 ~ 100
-
-        var list =  listOf(randomData1, 25.0f, 65.0f, randomData4);
-        processBluetoothData(list)
         binding.ivExst.setOnClickListener {
             finish()
         }
