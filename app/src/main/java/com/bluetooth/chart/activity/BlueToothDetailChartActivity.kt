@@ -6,7 +6,10 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Build
@@ -46,6 +49,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
     private val dailyFourthDataList = mutableListOf<Float>()
     private var currentXValue: Float = 0f // X축 값
+    private  var TAG = "TAG_Ble"
 
     private var dataBuffer = mutableListOf<List<Float>>() // 30초 동안 데이터를 버퍼에 저장
     private val chartUpdateInterval = 30_000L // 30초
@@ -140,47 +144,105 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
     }
 
-    // Bluetooth 디바이스에 연결
     private fun connectToBluetoothDevice() {
-        if(blueToothInfoModel == null){
-            Toast.makeText(this, "Bluetooth 연결 실패", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            ActivityCompat.requestPermissions(this@BlueToothDetailChartActivity,
-                arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
+        if (blueToothInfoModel == null) {
+            Toast.makeText(this, "Bluetooth 연결 실패 1", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val device: BluetoothDevice = bluetoothAdapter.getRemoteDevice(blueToothInfoModel!!.address) // 실제 디바이스 주소로 변경
-        Log.e("BluetoothData", " [uuid :${blueToothInfoModel!!.uuid}]")
-        try {
-            if(blueToothInfoModel!!.uuid.isNotEmpty()){
-                bluetoothSocket = device.createRfcommSocketToServiceRecord(UUID.fromString(blueToothInfoModel!!.uuid))
-                bluetoothSocket.connect()
-                inputStream = bluetoothSocket.inputStream // InputStream 초기화
-                if (bluetoothSocket != null && bluetoothSocket.isConnected) {
-                    inputStream = bluetoothSocket.inputStream
-                    startReceivingBluetoothData() // Bluetooth 데이터 수신 시작
-                } else {
-                    Log.e("Bluetooth", "소켓이 연결되지 않았습니다.")
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this@BlueToothDetailChartActivity, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
+            return
+        }
+
+        val device: BluetoothDevice = bluetoothAdapter.getRemoteDevice(blueToothInfoModel!!.address)
+        Log.e(TAG, " [uuid :${blueToothInfoModel!!.uuid}] [${blueToothInfoModel!!.bondState}] [${device.uuids.toList()}]")
+
+        if (device.bondState != BluetoothDevice.BOND_BONDED) {
+            Log.d(TAG, "기기가 페어링되어 있지 않습니다. 페어링을 시도합니다.")
+            device.createBond()
+
+            val pairingReceiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: Intent) {
+                    val action = intent.action
+                    if (action == BluetoothDevice.ACTION_BOND_STATE_CHANGED) {
+                        if (ActivityCompat.checkSelfPermission(
+                                this@BlueToothDetailChartActivity,
+                                Manifest.permission.BLUETOOTH_CONNECT
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            // TODO: Consider calling
+                            //    ActivityCompat#requestPermissions
+                            // here to request the missing permissions, and then overriding
+                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                            //                                          int[] grantResults)
+                            // to handle the case where the user grants the permission. See the documentation
+                            // for ActivityCompat#requestPermissions for more details.
+                            ActivityCompat.requestPermissions(this@BlueToothDetailChartActivity,
+                                arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
+                            return
+                        }
+
+                        val bondState = device.bondState
+                        when (bondState) {
+                            BluetoothDevice.BOND_BONDED -> {
+                                Toast.makeText(context, "페어링 성공", Toast.LENGTH_SHORT).show()
+                                context.unregisterReceiver(this)
+                                connectToDevice(device)
+                            }
+                            BluetoothDevice.BOND_NONE -> {
+                                Toast.makeText(context, "페어링 실패", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
                 }
-            }else{
-                Log.e("Bluetooth", "소켓이 연결되지 않았습니다.")
             }
 
-        } catch (e: IOException) {
+            val filter = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+            registerReceiver(pairingReceiver, filter)
+        } else {
+            connectToDevice(device)
+        }
+    }
+
+    private fun connectToDevice(device: BluetoothDevice) {
+        try {
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                ActivityCompat.requestPermissions(this@BlueToothDetailChartActivity,
+                    arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
+                return
+            }
+
+            for (uuid in device.uuids) {
+                try {
+                    bluetoothSocket = device.createRfcommSocketToServiceRecord(UUID.fromString(blueToothInfoModel!!.uuid))
+                    bluetoothSocket.connect()
+                    Log.d("Bluetooth", "연결 성공: $uuid")
+                    inputStream = bluetoothSocket.inputStream
+                    if (bluetoothSocket != null && bluetoothSocket.isConnected) {
+                        inputStream = bluetoothSocket.inputStream
+                        startReceivingBluetoothData() // Bluetooth 데이터 수신 시작
+                    } else {
+                        Log.e("Bluetooth", "소켓이 연결되지 않았습니다.")
+                    }
+                    break
+                } catch (e: IOException) {
+                    Log.e("Bluetooth", "연결 실패: $uuid - ${e.message}")
+                    bluetoothSocket.close()
+                }
+            }
+        } catch (e: Throwable) {
             e.printStackTrace()
             Toast.makeText(this, "Bluetooth 연결 실패", Toast.LENGTH_SHORT).show()
         }
@@ -195,7 +257,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
                 val newDataValues = getBluetoothDataList()
 
                 if(newDataValues.isEmpty()){
-                    Log.e("BluetoothData", "불루투스 데이터를 받아올수 없어요")
+                    Log.e(TAG, "불루투스 데이터를 받아올수 없어요")
                     // 데이터 초기화
                     binding.tvCurrentOutPut.text = "0"
                     binding.tvTodayPower.text = "0"

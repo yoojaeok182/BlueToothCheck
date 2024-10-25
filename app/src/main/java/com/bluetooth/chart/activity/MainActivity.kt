@@ -79,55 +79,64 @@ class MainActivity : AppCompatActivity() {
                 }
 
 
-                device?.let {
-                    val deviceName = it.name ?: "Unknown Device"
-                    val deviceAddress = it.address
-                    val deviceInfo = "$deviceName - $deviceAddress"
-                    val deviceMajorClass = it.bluetoothClass?.majorDeviceClass ?: "Unknown Major Class"
-                    val deviceClass = it.bluetoothClass?.deviceClass ?: "Unknown Class"
-                    val bluetoothPairingVariant = intent.getStringExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT)
-                    val bondState = when (it.bondState) {
-                        BluetoothDevice.BOND_BONDED -> "Paired"
-                        BluetoothDevice.BOND_BONDING -> "Pairing"
-                        BluetoothDevice.BOND_NONE -> "Not Paired"
-                        else -> "Unknown"
+                try{
+                    device?.let {
+                        val deviceName = it.name ?: "Unknown Device"
+                        val deviceAddress = it.address
+                        val deviceInfo = "$deviceName - $deviceAddress"
+                        val deviceMajorClass = it.bluetoothClass?.majorDeviceClass ?: "Unknown Major Class"
+                        val deviceClass = it.bluetoothClass?.deviceClass ?: "Unknown Class"
+                        val bluetoothPairingVariant = intent.getStringExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT)
+                        val bondState = when (it.bondState) {
+                            BluetoothDevice.BOND_BONDED -> "Paired"
+                            BluetoothDevice.BOND_BONDING -> "Pairing"
+                            BluetoothDevice.BOND_NONE -> "Not Paired"
+                            else -> "Unknown"
+                        }
+
+                        var bluetoothUUID = ""
+
+                        var uuids = device.uuids
+                        if(uuids == null){
+                            // UUID 목록이 없으면 SDP 요청
+                            device.fetchUuidsWithSdp()
+                        }
+                        uuids = device.uuids
+
+                        uuids?.forEach {
+                            bluetoothUUID = it.uuid.toString()
+                            // UUID 정보를 표시할 수 있습니다
+                        }
+                        if(uuids != null && uuids.isNotEmpty()){
+                            bluetoothUUID = uuids[0].toString()
+                        }
+                        Log.d(TAG, "onReceive:${bluetoothUUID} uuids List _ ${uuids.toList()} ")
+
+
+                        var data = BlueToothInfoModel()
+                        data.rssi = rssi.toString()
+                        data.name = deviceName
+                        data.orignName = deviceName ?: ""
+                        data.bondState = bondState ?:""
+                        data.deviceClass = deviceClass.toString()
+                        data.pairingvariant = bluetoothPairingVariant ?:""
+                        data.uuid = bluetoothUUID
+                        data.address = deviceAddress
+                        data.deviceMajorClass = deviceMajorClass.toString()
+                        deviceList.add(data)
+                        Log.d(TAG, "onReceive: bondState - $bondState ")
+                        Log.d(TAG, "onReceive: rssi - $rssi ")
+                        Log.d(TAG, "onReceive: bluetoothUUID _ ${bluetoothUUID} [${uuids.toList()}] ")
+                        Log.d(TAG, "onReceive: bluetoothPairingVariant _ $bluetoothPairingVariant ")
+
+                        Log.d(TAG, "onReceive: deviceList _ ${deviceList.toList()} ")
+
+                        deviceAdapter.notifyDataSetChanged()
+
+
                     }
-
-                    var bluetoothUUID = ""
-
-                    val uuids = device.uuids
-                    if(uuids == null){
-                        // UUID 목록이 없으면 SDP 요청
-                        device.fetchUuidsWithSdp()
-                    }
-                    uuids?.forEach {
-                        bluetoothUUID = it.uuid.toString()
-                        // UUID 정보를 표시할 수 있습니다
-                    }
-
-
-                    var data = BlueToothInfoModel()
-                    data.rssi = rssi.toString()
-                    data.name = deviceName
-                    data.orignName = deviceName ?: ""
-                    data.bondState = bondState ?:""
-                    data.deviceClass = deviceClass.toString()
-                    data.pairingvariant = bluetoothPairingVariant ?:""
-                    data.uuid = bluetoothUUID
-                    data.address = deviceAddress
-                    data.deviceMajorClass = deviceMajorClass.toString()
-                    deviceList.add(data)
-                    Log.d(TAG, "onReceive: $bondState ")
-                    Log.d(TAG, "onReceive: $rssi ")
-                    Log.d(TAG, "onReceive: $bluetoothUUID [$uuids] ")
-                    Log.d(TAG, "onReceive: ${it.uuids} ")
-                    Log.d(TAG, "onReceive: $bluetoothPairingVariant ")
-
-                    Log.d(TAG, "onReceive: ${deviceList.toList()} ")
-
-                    deviceAdapter.notifyDataSetChanged()
-
-
+                }catch (e:Throwable){
+                    e.printStackTrace()
                 }
             }
         }
