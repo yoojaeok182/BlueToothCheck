@@ -15,13 +15,13 @@ class GaugeViewChart(context: Context, attrs: AttributeSet) : View(context, attr
     // 페인트 초기화
     private val baseGaugePaint = Paint().apply {
         style = Paint.Style.STROKE
-        strokeWidth = 40f
+        strokeWidth = 50f
         isAntiAlias = true
     }
 
     private val gaugePaint = Paint().apply {
         style = Paint.Style.STROKE
-        strokeWidth = 40f
+        strokeWidth = 50f
         isAntiAlias = true
     }
 
@@ -55,7 +55,7 @@ class GaugeViewChart(context: Context, attrs: AttributeSet) : View(context, attr
         val height = height.toFloat()
 
         // 게이지의 범위 그리기 (기본 배경색)
-        val rect = RectF(40f, 40f, width - 40f, height+80f)
+        val rect = RectF(40f, 60f, width - 40f, height+80f)
         canvas.drawArc(rect, 180f, 180f, false, baseGaugePaint) // 전체 게이지
 
         // 값에 해당하는 부분 그리기 (동적 색상)
