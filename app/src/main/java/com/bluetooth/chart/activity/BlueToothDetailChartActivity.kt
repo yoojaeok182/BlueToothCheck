@@ -1,6 +1,7 @@
 package com.bluetooth.chart.activity
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -29,6 +30,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.roundToInt
 
 class BlueToothDetailChartActivity : AppCompatActivity() {
     private lateinit var binding: ActivityBluetoothChartBinding
@@ -86,6 +88,15 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         binding.chart3.value = 0f
         binding.tvPowerGenerationEfciency.text = "0%"
 
+        // 랜덤값 생성 (0.0f에서 100.0f 사이의 float 값)
+        val random = Random()
+        val random1 = Random()
+
+        val randomData1 = random.nextFloat() * 100 // 0 ~ 100
+        val randomData4 = random1.nextFloat() * 100 // 0 ~ 100
+
+        var list =  listOf(randomData1, 25.0f, 65.0f, randomData4);
+        processBluetoothData(list)
         binding.ivExst.setOnClickListener {
             finish()
         }
@@ -271,6 +282,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     }
 
     // Bluetooth 데이터 처리
+    @SuppressLint("SetTextI18n")
     private fun processBluetoothData(data: List<Float>) {
         if (data.size < 4) return
 
@@ -279,13 +291,20 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         val fourthData = data[3]
 
         // 첫 번째 데이터 표시
+        val number = firstData.toDouble()
+        val rounded = (number * 10).roundToInt() / 10.0
+
+        val number2 = thirdData.toDouble()
+        val rounded2 = (number2 * 10).roundToInt() / 10.0
+
+
         binding.chart1.value = firstData
-        binding.tvInverterPer.text = "$firstData %"
+        binding.tvInverterPer.text = "$rounded %"
 
         // 세 번째 데이터 표시
         binding.chart2.value = thirdData
-        binding.tvCurrentPowerOutputPer.text = "$thirdData kW"
-        binding.tvCurrentOutPut.text = "$thirdData"
+        binding.tvCurrentPowerOutputPer.text = "$rounded2 kW"
+        binding.tvCurrentOutPut.text = "$rounded2"
 
         // 네 번째 데이터 비율 계산
         val efficiency = if (firstData != 0f) {
@@ -293,8 +312,10 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         } else {
             0f
         }
+        val rounded3 = (efficiency * 10).roundToInt() / 10.0
+
         binding.chart3.value = efficiency
-        binding.tvPowerGenerationEfciency.text = "$efficiency %"
+        binding.tvPowerGenerationEfciency.text = "$rounded3 %"
 
         // 네 번째 데이터 평균 계산
         dailyFourthDataList.add(fourthData)
