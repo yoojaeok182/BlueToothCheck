@@ -51,96 +51,54 @@ class MainActivity : AppCompatActivity() {
                     Manifest.permission.BLUETOOTH_CONNECT
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                ActivityCompat.requestPermissions(this@MainActivity,
-                    arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
-
+                ActivityCompat.requestPermissions(
+                    this@MainActivity,
+                    arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                    10
+                )
                 return
             }
 
             if (BluetoothDevice.ACTION_FOUND == action) {
-                val rssi: Short = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE)
-               /* val bondState = intent.getStringExtra(BluetoothDevice.EXTRA_BOND_STATE)
-                val bluetoothName = intent.getStringExtra(BluetoothDevice.EXTRA_NAME)
-                val bluetoothUUID = intent.getStringExtra(BluetoothDevice.EXTRA_UUID)
-
-*/
-
-                var device: BluetoothDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val device: BluetoothDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
                 } else {
                     intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                 }
 
+                device?.let {
+                    val deviceAddress = it.address
 
-                try{
-                    device?.let {
-                        val deviceName = it.name ?: "Unknown Device"
-                        val deviceAddress = it.address
-                        val deviceInfo = "$deviceName - $deviceAddress"
-                        val deviceMajorClass = it.bluetoothClass?.majorDeviceClass ?: "Unknown Major Class"
-                        val deviceClass = it.bluetoothClass?.deviceClass ?: "Unknown Class"
-                        val bluetoothPairingVariant = intent.getStringExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT)
-                        val bondState = when (it.bondState) {
-                            BluetoothDevice.BOND_BONDED -> "Paired"
-                            BluetoothDevice.BOND_BONDING -> "Pairing"
-                            BluetoothDevice.BOND_NONE -> "Not Paired"
-                            else -> "Unknown"
-                        }
-
-                        var bluetoothUUID = ""
-
-                        var uuids = device.uuids
-                        if(uuids == null){
-                            // UUID 목록이 없으면 SDP 요청
-                            device.fetchUuidsWithSdp()
-                        }
-                        uuids = device.uuids
-
-                        uuids?.forEach {
-                            bluetoothUUID = it.uuid.toString()
-                            // UUID 정보를 표시할 수 있습니다
-                        }
-                        if(uuids != null && uuids.isNotEmpty()){
-                            bluetoothUUID = uuids[0].toString()
-                        }
-                        Log.d(TAG, "onReceive:${bluetoothUUID} uuids List _ ${uuids.toList()} ")
-
-
-                        var data = BlueToothInfoModel()
-                        data.rssi = rssi.toString()
-                        data.name = deviceName
-                        data.orignName = deviceName ?: ""
-                        data.bondState = bondState ?:""
-                        data.deviceClass = deviceClass.toString()
-                        data.pairingvariant = bluetoothPairingVariant ?:""
-                        data.uuid = bluetoothUUID
-                        data.address = deviceAddress
-                        data.deviceMajorClass = deviceMajorClass.toString()
-                        deviceList.add(data)
-                        Log.d(TAG, "onReceive: bondState - $bondState ")
-                        Log.d(TAG, "onReceive: rssi - $rssi ")
-                        Log.d(TAG, "onReceive: bluetoothUUID _ ${bluetoothUUID} [${uuids.toList()}] ")
-                        Log.d(TAG, "onReceive: bluetoothPairingVariant _ $bluetoothPairingVariant ")
-
-                        Log.d(TAG, "onReceive: deviceList _ ${deviceList.toList()} ")
-
-                        deviceAdapter.notifyDataSetChanged()
-
-
+                    // 중복 검사: deviceList에 이미 해당 주소가 있는지 확인
+                    val isDeviceExist = deviceList.any { existingDevice ->
+                        existingDevice.address == deviceAddress
                     }
-                }catch (e:Throwable){
-                    e.printStackTrace()
+
+                    // 중복이 아니면 추가
+                    if (!isDeviceExist) {
+                        val deviceName = it.name ?: "Unknown Device"
+                        val deviceInfo = BlueToothInfoModel().apply {
+                            name = deviceName
+                            address = deviceAddress
+                            rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toString()
+                            bondState = when (it.bondState) {
+                                BluetoothDevice.BOND_BONDED -> "Paired"
+                                BluetoothDevice.BOND_BONDING -> "Pairing"
+                                BluetoothDevice.BOND_NONE -> "Not Paired"
+                                else -> "Unknown"
+                            }
+                            deviceClass = it.bluetoothClass?.deviceClass.toString()
+                            deviceMajorClass = it.bluetoothClass?.majorDeviceClass.toString()
+                        }
+
+                        deviceList.add(deviceInfo)
+                        deviceAdapter.notifyDataSetChanged()
+                    }
                 }
             }
         }
     }
+
 
 
 
