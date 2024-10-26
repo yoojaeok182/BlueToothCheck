@@ -87,6 +87,19 @@ class MainActivity : AppCompatActivity() {
                                 BluetoothDevice.BOND_NONE -> "Not Paired"
                                 else -> "Unknown"
                             }
+                            var bluetoothUUID = ""
+
+                            val uuids = device.uuids
+                            if(uuids == null){
+                                // UUID 목록이 없으면 SDP 요청
+                                device.fetchUuidsWithSdp()
+                            }
+                            uuids?.forEach {
+                                bluetoothUUID = it.uuid.toString()
+                                // UUID 정보를 표시할 수 있습니다
+                            }
+
+                            uuid = bluetoothUUID
                             deviceClass = it.bluetoothClass?.deviceClass.toString()
                             deviceMajorClass = it.bluetoothClass?.majorDeviceClass.toString()
                         }

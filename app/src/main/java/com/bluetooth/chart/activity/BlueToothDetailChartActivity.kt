@@ -15,6 +15,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -60,6 +61,13 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
+        window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                )
+
+
         binding = ActivityBluetoothChartBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -82,9 +90,9 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
 
         // UI 초기화
-        binding.tvCurrentOutPut.text = ""
-        binding.tvTodayPower.text = ""
-        binding.tvTodayPowerTime.text = ""
+        binding.tvCurrentOutPut.text = "0"
+        binding.tvTodayPower.text = "0"
+        binding.tvTodayPowerTime.text = "0"
         binding.chart1.value = 0f
         binding.tvInverterPer.text = "0%"
         binding.chart2.value = 0f
@@ -226,25 +234,26 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
             for (uuid in device.uuids) {
                 try {
-                    bluetoothSocket = device.createRfcommSocketToServiceRecord(UUID.fromString(blueToothInfoModel!!.uuid))
+                    bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid.uuid)
                     bluetoothSocket.connect()
-                    Log.d("Bluetooth", "연결 성공: $uuid")
-                    inputStream = bluetoothSocket.inputStream
+                    Log.d(TAG, "연결 성공: $uuid")
                     if (bluetoothSocket != null && bluetoothSocket.isConnected) {
                         inputStream = bluetoothSocket.inputStream
                         startReceivingBluetoothData() // Bluetooth 데이터 수신 시작
                     } else {
-                        Log.e("Bluetooth", "소켓이 연결되지 않았습니다.")
+                        Log.e(TAG, "소켓이 연결되지 않았습니다.")
                     }
                     break
                 } catch (e: IOException) {
-                    Log.e("Bluetooth", "연결 실패: $uuid - ${e.message}")
+                    Log.e(TAG, "연결 실패: $uuid - ${e.message}")
                     bluetoothSocket.close()
                 }
             }
         } catch (e: Throwable) {
             e.printStackTrace()
-            Toast.makeText(this, "Bluetooth 연결 실패", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "연결 실패: ${e.printStackTrace()} - ${e.message}")
+
+            Toast.makeText(this, "Bluetooth 연결 실패 (${e.printStackTrace()})", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -255,6 +264,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         scope.launch {
             while (isReceivingData) {
                 val newDataValues = getBluetoothDataList()
+                Log.d(TAG, "연결 성공: $newDataValues")
 
                 if(newDataValues.isEmpty()){
                     Log.e(TAG, "불루투스 데이터를 받아올수 없어요")
@@ -310,22 +320,42 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
     // Bluetooth 데이터 받아오는 메소드
     private fun getBluetoothDataList(): List<Float> {
-        val buffer = ByteArray(1024) // Bluetooth로부터 데이터를 받을 버퍼
+
         var bytesRead: Int
         val receivedDataList = mutableListOf<Float>()
 
         try {
+            Log.e(TAG, "소켓이 연결 ${bluetoothSocket.isConnected}")
+
             // InputStream에서 데이터 읽기
-            bytesRead = inputStream.read(buffer)
-            if (bytesRead > 0) {
-                val receivedData = String(buffer, 0, bytesRead).trim() // 받은 데이터를 문자열로 변환
-                val dataArray = receivedData.split(",") // 쉼표로 데이터를 분리
-                for (data in dataArray) {
-                    val value = data.trim().toFloatOrNull() // 문자열을 float로 변환
-                    if (value != null) {
-                        receivedDataList.add(value)
+            if(bluetoothSocket.isConnected){
+                //데이터 수신 확인
+                var byteAvailable = inputStream.available()
+                Log.e(TAG, "소켓이 연결 ${byteAvailable}")
+
+                if(byteAvailable > 0){
+                    val buffer = ByteArray(byteAvailable) // Bluetooth로부터 데이터를 받을 버퍼
+
+                    bytesRead = inputStream.read(buffer)
+                    Log.e(TAG, "소켓이 연결 1${inputStream} [${bytesRead}]")
+
+                    if (bytesRead > 0) {
+                        val receivedData = String(buffer, 0, bytesRead).trim() // 받은 데이터를 문자열로 변환
+                        Log.e(TAG, "소켓이 연결 2${receivedData}]")
+
+                        val dataArray = receivedData.split(",") // 쉼표로 데이터를 분리
+                        for (data in dataArray) {
+                            val value = data.trim().toFloatOrNull() // 문자열을 float로 변환
+                            if (value != null) {
+                                receivedDataList.add(value)
+                            }
+                        }
                     }
                 }
+
+            }else{
+                Log.e(TAG, "소켓이 연결되지 않았습니다.")
+
             }
         } catch (e: IOException) {
             e.printStackTrace()

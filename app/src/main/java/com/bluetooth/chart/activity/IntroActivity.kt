@@ -36,7 +36,6 @@ class IntroActivity : AppCompatActivity(), PermissionResultCallback {
         }*/
 
 
-
         binding.btnNext.setOnClickListener {
             CheckPermissionManager.checkAndRequestPermissions(this@IntroActivity,this)
 
