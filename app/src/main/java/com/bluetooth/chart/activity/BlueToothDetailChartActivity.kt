@@ -4,13 +4,13 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
+import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
-import android.bluetooth.BluetoothSocket
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -30,8 +30,6 @@ import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.ValueFormatter
 import kotlinx.coroutines.*
-import java.io.IOException
-import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
@@ -39,8 +37,7 @@ import kotlin.math.roundToInt
 class BlueToothDetailChartActivity : AppCompatActivity() {
     private lateinit var binding: ActivityBluetoothChartBinding
     private lateinit var bluetoothAdapter: BluetoothAdapter
-    private lateinit var bluetoothSocket: BluetoothSocket
-    private lateinit var inputStream: InputStream
+    private var bluetoothGatt: BluetoothGatt? = null
     private lateinit var combinedChart: CombinedChart
     private lateinit var lineDataSet: LineDataSet
     private lateinit var barDataSet: BarDataSet
@@ -50,46 +47,47 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
     private val dailyFourthDataList = mutableListOf<Float>()
     private var currentXValue: Float = 0f // X축 값
-    private  var TAG = "TAG_Ble"
+    private var TAG = "TAG_Ble"
 
     private var dataBuffer = mutableListOf<List<Float>>() // 30초 동안 데이터를 버퍼에 저장
     private val chartUpdateInterval = 30_000L // 30초
     private var isFirstDataReceived = false // 첫 번째 데이터 수신 확인 플래그
-    private var blueToothInfoModel : BlueToothInfoModel? = null
+    private var blueToothInfoModel: BlueToothInfoModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-
-        window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                )
-
-
         binding = ActivityBluetoothChartBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         init()
-        resetDataAtMidnight() // 자정에 데이터 초기화
     }
 
     private fun init() {
-
+        // BLE 정보 가져오기
         val intent = intent
         if (intent.hasExtra("blueToothData")) {
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                blueToothInfoModel = intent.getSerializableExtra("blueToothData", BlueToothInfoModel::class.java)
-            }else{
-                blueToothInfoModel =
-                    intent.extras!!.getSerializable("blueToothData") as BlueToothInfoModel?
+            blueToothInfoModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getSerializableExtra("blueToothData", BlueToothInfoModel::class.java)
+            } else {
+                intent.extras!!.getSerializable("blueToothData") as BlueToothInfoModel?
             }
-
         }
 
         // UI 초기화
+        setupUI()
+        setupCombinedChart()
+
+        // Bluetooth 초기화
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        bluetoothAdapter = bluetoothManager.adapter ?: run {
+            Toast.makeText(this, "Bluetooth를 지원하지 않는 장치입니다", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        connectToBLEDevice()
+    }
+
+    private fun setupUI() {
         binding.tvCurrentOutPut.text = "0"
         binding.tvTodayPower.text = "0"
         binding.tvTodayPowerTime.text = "0"
@@ -100,26 +98,14 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         binding.chart3.value = 0f
         binding.tvPowerGenerationEfciency.text = "0%"
 
+
         binding.ivExst.setOnClickListener {
             finish()
         }
-
-        // CombinedChart 초기화
-        combinedChart = binding.chart4
-        setupCombinedChart()
-
-        // Bluetooth 초기화
-        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bluetoothAdapter = bluetoothManager.adapter ?: run {
-            Toast.makeText(this, "Bluetooth를 지원하지 않는 장치입니다", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        connectToBluetoothDevice() // Bluetooth 디바이스 연결
     }
 
-    // CombinedChart 설정
     private fun setupCombinedChart() {
+        combinedChart = binding.chart4
         val xAxis: XAxis = combinedChart.xAxis
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         xAxis.granularity = 1f // X축 단위
@@ -128,23 +114,24 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         yAxisLeft.granularity = 10f
         combinedChart.axisRight.isEnabled = false // 오른쪽 Y축 비활성화
 
-        // LineDataSet 설정 (선형 차트 데이터)
+        // LineDataSet 설정
         lineDataSet = LineDataSet(mutableListOf(), "Bluetooth 데이터")
-        lineDataSet.color = ContextCompat.getColor(this, R.color.color_gauge_chart_02)
-        lineDataSet.lineWidth = 2f
-        lineDataSet.setDrawCircles(false) // 선 그래프에서 점 안 보이게
-        lineDataSet.setDrawValues(false)  // 값 표시 비활성화
+        lineDataSet.color = ContextCompat.getColor(this, R.color.color_gauge_chart_03)
+        lineDataSet.lineWidth = 1f
+        lineDataSet.setDrawCircles(false)
+        lineDataSet.setDrawValues(false)
 
-        // BarDataSet 설정 (막대형 차트 데이터)
-        barDataSet = BarDataSet(mutableListOf(), "Power Output") // 데이터의 이름 변경 가능
-        barDataSet.color = ContextCompat.getColor(this, R.color.color_base_gauge_chart_bg_02)
-        barDataSet.setDrawValues(false) // 막대형 차트의 값 비활성화
+        // BarDataSet 설정
+        barDataSet = BarDataSet(mutableListOf(), "Power Output")
+        barDataSet.color = ContextCompat.getColor(this, R.color.color_7)
+        barDataSet.setDrawValues(false)
 
-        // X축을 시간 단위로 표시되도록 설정
-        xAxis.granularity = 30f // 30초 간격으로 X축에 데이터 추가
+
+        // X축을 시간 단위로 설정
+        xAxis.granularity = 5f
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
-                val timeInSeconds = (value * 30).toInt() // 30초 간격
+                val timeInSeconds = (value * 30).toInt()
                 val minutes = (timeInSeconds / 60) % 60
                 val seconds = timeInSeconds % 60
                 return String.format("%02d:%02d", minutes, seconds)
@@ -152,157 +139,217 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
     }
 
-    private fun connectToBluetoothDevice() {
+    private fun connectToBLEDevice() {
         if (blueToothInfoModel == null) {
-            Toast.makeText(this, "Bluetooth 연결 실패 1", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Bluetooth 연결 실패", Toast.LENGTH_SHORT).show()
             return
         }
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this@BlueToothDetailChartActivity, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
             return
         }
 
         val device: BluetoothDevice = bluetoothAdapter.getRemoteDevice(blueToothInfoModel!!.address)
-        Log.e(TAG, " [uuid :${blueToothInfoModel!!.uuid}] [${blueToothInfoModel!!.bondState}] [${device.uuids.toList()}]")
+        bluetoothGatt = device.connectGatt(this, false, gattCallback)
+    }
 
-        if (device.bondState != BluetoothDevice.BOND_BONDED) {
-            Log.d(TAG, "기기가 페어링되어 있지 않습니다. 페어링을 시도합니다.")
-            device.createBond()
+    private val gattCallback = object : BluetoothGattCallback() {
+        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            try {
+                Log.d(TAG, " [$status]- [$newState] gatt : $gatt")
+                if (newState == BluetoothGatt.STATE_CONNECTED) {
+                    Log.d(TAG, "BLE 연결 성공")
+                    if (ActivityCompat.checkSelfPermission(
+                            this@BlueToothDetailChartActivity,
+                            Manifest.permission.BLUETOOTH_CONNECT
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+                        return
+                    }
+                    gatt.discoverServices()
+                } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
+                    Log.d(TAG, "BLE 연결 해제")
+                    gatt.close()
+                }
+            } catch (e: Exception) {
+                TODO("Not yet implemented")
+                Log.d(TAG, "msg: ${e.printStackTrace()}")
 
-            val pairingReceiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: Intent) {
-                    val action = intent.action
-                    if (action == BluetoothDevice.ACTION_BOND_STATE_CHANGED) {
-                        if (ActivityCompat.checkSelfPermission(
-                                this@BlueToothDetailChartActivity,
-                                Manifest.permission.BLUETOOTH_CONNECT
-                            ) != PackageManager.PERMISSION_GRANTED
-                        ) {
-                            // TODO: Consider calling
-                            //    ActivityCompat#requestPermissions
-                            // here to request the missing permissions, and then overriding
-                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                            //                                          int[] grantResults)
-                            // to handle the case where the user grants the permission. See the documentation
-                            // for ActivityCompat#requestPermissions for more details.
-                            ActivityCompat.requestPermissions(this@BlueToothDetailChartActivity,
-                                arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
-                            return
-                        }
+            }
+        }
 
-                        val bondState = device.bondState
-                        when (bondState) {
-                            BluetoothDevice.BOND_BONDED -> {
-                                Toast.makeText(context, "페어링 성공", Toast.LENGTH_SHORT).show()
-                                context.unregisterReceiver(this)
-                                connectToDevice(device)
+        override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            try {
+                Log.d(TAG, "onServicesDiscovered : $status [${status == BluetoothGatt.GATT_SUCCESS}]")
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    val services = gatt.services
+                    services.forEach { service ->
+                        Log.d(TAG, "Service UUID: ${service.uuid}")
+                        service.characteristics.forEach { characteristic ->
+                            Log.d(TAG, "Characteristic UUID: ${characteristic.uuid}")
+                            val service: BluetoothGattService? = gatt.getService(service.uuid)
+//                            Log.d(TAG, "onServicesDiscovered : $service]")
+
+                            service?.let {
+                                val characteristic: BluetoothGattCharacteristic? = service.getCharacteristic(characteristic.uuid)
+
+                                characteristic?.let {
+                                    if (ActivityCompat.checkSelfPermission(
+                                            this@BlueToothDetailChartActivity,
+                                            Manifest.permission.BLUETOOTH_CONNECT
+                                        ) != PackageManager.PERMISSION_GRANTED
+                                    ) {
+                                        // TODO: Consider calling
+                                        //    ActivityCompat#requestPermissions
+                                        // here to request the missing permissions, and then overriding
+                                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                        //                                          int[] grantResults)
+                                        // to handle the case where the user grants the permission. See the documentation
+                                        // for ActivityCompat#requestPermissions for more details.
+                                        return
+                                    }
+
+                                    if (it.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) {
+                                        // 알림 활성화
+                                        gatt.setCharacteristicNotification(it, true)
+
+                                        // Client Characteristic Configuration Descriptor 설정
+                                        val descriptorUuid = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+                                        val descriptor = it.getDescriptor(descriptorUuid)
+
+                                        descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+
+                                        // Descriptor 작성 요청
+                                        gatt.writeDescriptor(descriptor)
+                                    }
+
+                                    /*  if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) {
+  //                                        gatt.setCharacteristicNotification(characteristic, true)
+                                          gatt.readCharacteristic(characteristic)
+
+
+                                      }*/
+                                }
                             }
-                            BluetoothDevice.BOND_NONE -> {
-                                Toast.makeText(context, "페어링 실패", Toast.LENGTH_SHORT).show()
-                            }
+
                         }
                     }
-                }
-            }
 
-            val filter = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
-            registerReceiver(pairingReceiver, filter)
-        } else {
-            connectToDevice(device)
+                }
+            }catch (e:Throwable){
+                Log.e(TAG,"e: ${e.printStackTrace()}")
+            }
+        }
+        override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG, "Descriptor written successfully: ${descriptor.uuid}")
+
+                // Descriptor가 성공적으로 작성된 후 characteristic을 읽습니다.
+                val characteristic = descriptor.characteristic
+                if (ActivityCompat.checkSelfPermission(
+                        this@BlueToothDetailChartActivity,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return
+                }
+                Log.d(TAG, "Descriptor written successfully: ${characteristic.value}")
+
+                gatt.readCharacteristic(characteristic) // 여기에서 characteristic 값을 읽습니다.
+            } else {
+                Log.e(TAG, "Failed to write descriptor: $status")
+            }
+        }
+
+        override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG, "Characteristic read successfully: ${characteristic.uuid} - Value: ${characteristic.value}")
+                /* val data = characteristic.value
+                 processBLEData(data)*/
+            } else {
+                Log.e(TAG, "Failed to read characteristic: $status")
+            }
+        }
+
+        /* override fun onCharacteristicRead(
+             gatt: BluetoothGatt,
+             characteristic: BluetoothGattCharacteristic,
+             value: ByteArray,
+             status: Int
+         ) {
+             Log.e(TAG, "onCharacteristicRead : $value , $status")
+
+             super.onCharacteristicRead(gatt, characteristic, value, status)
+         }*/
+        @Deprecated("Deprecated in Java")
+        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+
+
+            val data = characteristic.value
+            Log.e(TAG, "onCharacteristicChanged : $data")
+
+            processBLEData(data)
         }
     }
 
-    private fun connectToDevice(device: BluetoothDevice) {
-        try {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.BLUETOOTH_CONNECT
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                ActivityCompat.requestPermissions(this@BlueToothDetailChartActivity,
-                    arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
-                return
-            }
+    @SuppressLint("SetTextI18n")
+    private fun processBLEData(data: ByteArray) {
+        // 데이터 처리 로직 구현 (예: 파싱, 차트에 추가)
+        // 예시: 데이터를 Float 리스트로 변환 후 차트에 추가
+        val values = parseBLEData(data)
 
-            for (uuid in device.uuids) {
-                try {
-                    bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid.uuid)
-                    bluetoothSocket.connect()
-                    Log.d(TAG, "연결 성공: $uuid")
-                    if (bluetoothSocket != null && bluetoothSocket.isConnected) {
-                        inputStream = bluetoothSocket.inputStream
-                        startReceivingBluetoothData() // Bluetooth 데이터 수신 시작
-                    } else {
-                        Log.e(TAG, "소켓이 연결되지 않았습니다.")
-                    }
-                    break
-                } catch (e: IOException) {
-                    Log.e(TAG, "연결 실패: $uuid - ${e.message}")
-                    bluetoothSocket.close()
-                }
-            }
-        } catch (e: Throwable) {
-            e.printStackTrace()
-            Log.e(TAG, "연결 실패: ${e.printStackTrace()} - ${e.message}")
+        if(values.isEmpty()){
+            Log.e(TAG, "불루투스 데이터를 받아올수 없어요")
+            // 데이터 초기화
+            binding.tvCurrentOutPut.text = "0"
+            binding.tvTodayPower.text = "0"
+            binding.tvTodayPowerTime.text = "0"
+            binding.chart1.value = 0f
+            binding.tvInverterPer.text = "0%"
+            binding.chart2.value = 0f
+            binding.tvCurrentPowerOutputPer.text = "0%"
+            binding.chart3.value = 0f
+            binding.tvPowerGenerationEfciency.text = "0%"
 
-            Toast.makeText(this, "Bluetooth 연결 실패 (${e.printStackTrace()})", Toast.LENGTH_SHORT).show()
+            // 리스트도 초기화
+            dailyFourthDataList.clear()
+            return
         }
-    }
-
-    // Bluetooth 데이터 실시간 수신 시작
-    private fun startReceivingBluetoothData() {
-        isReceivingData = true
 
         scope.launch {
-            while (isReceivingData) {
-                val newDataValues = getBluetoothDataList()
-                Log.d(TAG, "연결 성공: $newDataValues")
 
-                if(newDataValues.isEmpty()){
-                    Log.e(TAG, "불루투스 데이터를 받아올수 없어요")
-                    // 데이터 초기화
-                    binding.tvCurrentOutPut.text = "0"
-                    binding.tvTodayPower.text = "0"
-                    binding.tvTodayPowerTime.text = "0"
-                    binding.chart1.value = 0f
-                    binding.tvInverterPer.text = "0%"
-                    binding.chart2.value = 0f
-                    binding.tvCurrentPowerOutputPer.text = "0%"
-                    binding.chart3.value = 0f
-                    binding.tvPowerGenerationEfciency.text = "0%"
 
-                    // 리스트도 초기화
-                    dailyFourthDataList.clear()
-                    return@launch
-                }
-                // 첫 번째 데이터는 즉시 차트에 추가
-                if (!isFirstDataReceived) {
-                    processBluetoothData(newDataValues)
-                    addEntryToChartImmediately(newDataValues)
-                    isFirstDataReceived = true
+            // 첫 번째 데이터는 즉시 차트에 추가
+            if (!isFirstDataReceived) {
+                processBluetoothData(values)
+                addEntryToChartImmediately(values)
+                isFirstDataReceived = true
 
-                    // 이후에는 30초 간격으로 업데이트
-                    startChartUpdateTimer()
-                }
-
-                // 데이터를 버퍼에 추가 (0.5초마다)
-                dataBuffer.add(newDataValues)
-
-                processBluetoothData(newDataValues)
-
-                delay(500) // 0.5초 대기 (실시간 데이터 수신)
+                // 이후에는 30초 간격으로 업데이트
+                startChartUpdateTimer()
             }
+
+            // 데이터를 버퍼에 추가 (0.5초마다)
+            dataBuffer.add(values)
+
+            processBluetoothData(values)
         }
     }
-
     // 30초마다 차트 업데이트
     private fun startChartUpdateTimer() {
         scope.launch {
@@ -318,50 +365,33 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
     }
 
-    // Bluetooth 데이터 받아오는 메소드
-    private fun getBluetoothDataList(): List<Float> {
+    private fun parseBLEData(data: ByteArray): List<Float> {
+        Log.e(TAG, "parseBLEData: $data")
 
-        var bytesRead: Int
-        val receivedDataList = mutableListOf<Float>()
+        // ByteArray를 String으로 변환
+        val dataString = String(data)
+        Log.e(TAG, "parseBLEData 2: $dataString")
 
-        try {
-            Log.e(TAG, "소켓이 연결 ${bluetoothSocket.isConnected}")
+        // 문자열을 쉼표로 분리하여 리스트로 변환
+        val stringValues = dataString.split(",")
+        Log.e(TAG, "parseBLEData3: $stringValues")
 
-            // InputStream에서 데이터 읽기
-            if(bluetoothSocket.isConnected){
-                //데이터 수신 확인
-                var byteAvailable = inputStream.available()
-                Log.e(TAG, "소켓이 연결 ${byteAvailable}")
-
-                if(byteAvailable > 0){
-                    val buffer = ByteArray(byteAvailable) // Bluetooth로부터 데이터를 받을 버퍼
-
-                    bytesRead = inputStream.read(buffer)
-                    Log.e(TAG, "소켓이 연결 1${inputStream} [${bytesRead}]")
-
-                    if (bytesRead > 0) {
-                        val receivedData = String(buffer, 0, bytesRead).trim() // 받은 데이터를 문자열로 변환
-                        Log.e(TAG, "소켓이 연결 2${receivedData}]")
-
-                        val dataArray = receivedData.split(",") // 쉼표로 데이터를 분리
-                        for (data in dataArray) {
-                            val value = data.trim().toFloatOrNull() // 문자열을 float로 변환
-                            if (value != null) {
-                                receivedDataList.add(value)
-                            }
-                        }
-                    }
+        // 각 값을 Float로 변환하여 리스트에 저장
+        val floatValues = mutableListOf<Float>()
+        for (value in stringValues) {
+            // 공백 제거 후 변환
+            val trimmedValue = value.trim()
+            if (trimmedValue.isNotEmpty()) {
+                try {
+                    Log.e(TAG,"trimmedValue : $trimmedValue")
+                    floatValues.add(trimmedValue.toFloat())
+                } catch (e: NumberFormatException) {
+                    Log.e(TAG, "Invalid number format: $trimmedValue", e)
                 }
-
-            }else{
-                Log.e(TAG, "소켓이 연결되지 않았습니다.")
-
             }
-        } catch (e: IOException) {
-            e.printStackTrace()
         }
 
-        return receivedDataList // 데이터를 리스트로 반환
+        return floatValues
     }
 
     // Bluetooth 데이터 처리
@@ -381,18 +411,36 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         val rounded2 = (number2 * 10).roundToInt() / 10.0
 
 
-        binding.chart1.value = firstData
+        var chart1Value :Float = 0f
+        var chart2Value:Float =0f
+        var chart3Value:Float = 0f
+        if(firstData> 220){
+            chart1Value  = 100f
+        }else{
+            chart1Value = firstData
+        }
+
+        if(thirdData> 627.12){
+            chart2Value  = 100f
+        }else{
+            chart2Value = thirdData
+        }
+
+        binding.chart1.value = chart1Value
         binding.tvInverterPer.text = "$rounded %"
 
         // 세 번째 데이터 표시
-        binding.chart2.value = thirdData
+        binding.chart2.value = chart2Value
         binding.tvCurrentPowerOutputPer.text = "$rounded2 kW"
         binding.tvCurrentOutPut.text = "$rounded2"
 
         // 네 번째 데이터 비율 계산
-        val efficiency = if (firstData != 0f) {
+        val efficiency = if (firstData != 0f && firstData < 220.1) {
             minOf(fourthData / firstData * 100, 100f) // 최대 100%로 제한
-        } else {
+        }else  if (firstData != 0f && firstData > 220.1) {
+            minOf(fourthData / 220 * 100, 100f) // 최대 100%로 제한
+        }
+        else {
             0f
         }
         val rounded3 = (efficiency * 10).roundToInt() / 10.0
@@ -445,14 +493,16 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         // BarChart 데이터 추가
         barDataSet.addEntry(BarEntry(time, barValue))
 
+        val barData = BarData(barDataSet)
+        barData.barWidth = 0.1f
         // CombinedData에 LineData와 BarData 추가
         val combinedData = CombinedData()
         combinedData.setData(LineData(lineDataSet))
-        combinedData.setData(BarData(barDataSet))
+        combinedData.setData(barData)
 
         combinedChart.data = combinedData
         combinedChart.notifyDataSetChanged()
-        combinedChart.setVisibleXRangeMaximum(10f) // 최대 10개 데이터 보이게
+        combinedChart.setVisibleXRangeMaximum(60f) // 최대 10개 데이터 보이게
         combinedChart.moveViewToX(combinedData.entryCount.toFloat())
     }
 
@@ -467,35 +517,25 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
     }
 
-    // 자정에 데이터 초기화
-    private fun resetDataAtMidnight() {
-        val now = Calendar.getInstance()
-        val nextMidnight = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-            add(Calendar.DAY_OF_MONTH, 1)
+    override fun onDestroy() {
+        super.onDestroy()
+        if (ActivityCompat.checkSelfPermission(
+                this@BlueToothDetailChartActivity,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return
         }
 
-        val timeUntilMidnight = nextMidnight.timeInMillis - now.timeInMillis
-
-        scope.launch {
-            delay(timeUntilMidnight)
-
-            // 데이터 초기화
-            binding.tvCurrentOutPut.text = "0"
-            binding.tvTodayPower.text = "0"
-            binding.tvTodayPowerTime.text = "0"
-            binding.chart1.value = 0f
-            binding.tvInverterPer.text = "0%"
-            binding.chart2.value = 0f
-            binding.tvCurrentPowerOutputPer.text = "0%"
-            binding.chart3.value = 0f
-            binding.tvPowerGenerationEfciency.text = "0%"
-
-            // 리스트도 초기화
-            dailyFourthDataList.clear()
-        }
+        bluetoothGatt?.close()
+        isReceivingData = false
+        scope.cancel()
     }
 }

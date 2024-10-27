@@ -281,6 +281,7 @@
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/chart2Laout"
+                android:paddingTop="30dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/group2TitleArea"
                 app:layout_constraintStart_toStartOf="parent"
@@ -299,8 +300,11 @@
                     android:layout_height="0dp">
                     <TextView
                         android:layout_marginTop="10dp"
-                        android:includeFontPadding="false"
+                        app:layout_constraintVertical_chainStyle="packed"
                         app:layout_constraintTop_toTopOf="parent"
+                        android:layout_marginBottom="10dp"
+                        android:includeFontPadding="false"
+                        app:layout_constraintBottom_toTopOf="@id/groupChart1"
                         android:text="인버터(DC/AC)변환효율"
                         android:textColor="@color/color_3"
                         android:textSize="12sp"
@@ -310,11 +314,12 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"/>
                     <androidx.constraintlayout.widget.ConstraintLayout
-                        android:layout_marginStart="20dp"
-                        android:layout_marginEnd="20dp"
-                        android:layout_marginTop="20dp"
-                        app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/tvInverterPerTitle"
+                        android:id="@+id/groupChart1"
+                        android:layout_marginStart="30dp"
+                        android:layout_marginEnd="30dp"
+                        android:layout_marginTop="10dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         android:layout_width="0dp"
@@ -322,6 +327,7 @@
                         <com.bluetooth.chart.module.chart.GaugeViewChart
                             android:id="@+id/chart1"
 
+                            android:layout_marginBottom="20dp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
@@ -334,7 +340,7 @@
                     </androidx.constraintlayout.widget.ConstraintLayout>
 
                     <TextView
-                        android:layout_marginBottom="10dp"
+                        android:layout_marginBottom="30dp"
                         app:layout_constraintBottom_toBottomOf="parent"
                         android:includeFontPadding="false"
                         android:text="0 %"
@@ -355,9 +361,12 @@
                     android:layout_height="match_parent">
                     <TextView
                         android:layout_marginTop="10dp"
-                        android:includeFontPadding="false"
+                        app:layout_constraintVertical_chainStyle="packed"
                         app:layout_constraintTop_toTopOf="parent"
-                        android:text="인버터(DC/AC)변환효율"
+                        android:layout_marginBottom="10dp"
+                        android:includeFontPadding="false"
+                        app:layout_constraintBottom_toTopOf="@id/groupChart2"
+                        android:text="현재발전출력"
                         android:textColor="@color/color_4"
                         android:textSize="12sp"
                         android:id="@+id/tvCurrentPowerOutputTitle"
@@ -365,13 +374,13 @@
                         app:layout_constraintEnd_toEndOf="parent"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"/>
-
                     <androidx.constraintlayout.widget.ConstraintLayout
-                        android:layout_marginStart="20dp"
-                        android:layout_marginEnd="20dp"
-                        android:layout_marginTop="20dp"
-                        app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/tvCurrentPowerOutputTitle"
+                        android:id="@+id/groupChart2"
+                        android:layout_marginStart="30dp"
+                        android:layout_marginEnd="30dp"
+                        android:layout_marginTop="10dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         android:layout_width="0dp"
@@ -379,6 +388,7 @@
                         <com.bluetooth.chart.module.chart.GaugeViewChart
                             android:id="@+id/chart2"
 
+                            android:layout_marginBottom="20dp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
@@ -390,7 +400,7 @@
                             android:layout_gravity="center" />
                     </androidx.constraintlayout.widget.ConstraintLayout>
                     <TextView
-                        android:layout_marginBottom="10dp"
+                        android:layout_marginBottom="30dp"
                         app:layout_constraintBottom_toBottomOf="parent"
                         android:includeFontPadding="false"
                         android:text="0 kW"
@@ -414,8 +424,11 @@
                     android:layout_height="match_parent">
                     <TextView
                         android:layout_marginTop="10dp"
-                        android:includeFontPadding="false"
+                        app:layout_constraintVertical_chainStyle="packed"
                         app:layout_constraintTop_toTopOf="parent"
+                        android:layout_marginBottom="10dp"
+                        android:includeFontPadding="false"
+                        app:layout_constraintBottom_toTopOf="@id/groupChart3"
                         android:text="발전효율"
                         android:textColor="@color/color_5"
                         android:textSize="12sp"
@@ -424,13 +437,13 @@
                         app:layout_constraintEnd_toEndOf="parent"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"/>
-
                     <androidx.constraintlayout.widget.ConstraintLayout
-                        android:layout_marginStart="20dp"
-                        android:layout_marginEnd="20dp"
-                        android:layout_marginTop="20dp"
-                        app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/tvPowerGenerationEfciencyTitle"
+                        android:id="@+id/groupChart3"
+                        android:layout_marginStart="30dp"
+                        android:layout_marginEnd="30dp"
+                        android:layout_marginTop="10dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         android:layout_width="0dp"
@@ -438,6 +451,7 @@
                         <com.bluetooth.chart.module.chart.GaugeViewChart
                             android:id="@+id/chart3"
 
+                            android:layout_marginBottom="20dp"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
@@ -450,7 +464,7 @@
                     </androidx.constraintlayout.widget.ConstraintLayout>
 
                     <TextView
-                        android:layout_marginBottom="10dp"
+                        android:layout_marginBottom="30dp"
                         app:layout_constraintBottom_toBottomOf="parent"
                         android:includeFontPadding="false"
                         android:text="0 %"
