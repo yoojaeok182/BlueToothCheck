@@ -411,14 +411,16 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         val rounded2 = (number2 * 10).roundToInt() / 10.0
 
 
+        //2024.10.27 데이터값 1번 차트값이 220보다 클경우 그래프 최대치 100%로
         var chart1Value :Float = 0f
         var chart2Value:Float =0f
-        var chart3Value:Float = 0f
         if(firstData> 220){
             chart1Value  = 100f
         }else{
             chart1Value = firstData
         }
+
+        //2024.10.27 데이터값 3번 값  627.12 보다 클경우 그래프 최대치 100%로
 
         if(thirdData> 627.12){
             chart2Value  = 100f
@@ -435,6 +437,8 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         binding.tvCurrentOutPut.text = "$rounded2"
 
         // 네 번째 데이터 비율 계산
+        //2024.10.27  차트 3 번관련해서 1번데이터값이 220보다 크냐 작냐에 따라 서 계산하도록 처리
+
         val efficiency = if (firstData != 0f && firstData < 220.1) {
             minOf(fourthData / firstData * 100, 100f) // 최대 100%로 제한
         }else  if (firstData != 0f && firstData > 220.1) {
