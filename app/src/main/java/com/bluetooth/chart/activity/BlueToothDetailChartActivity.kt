@@ -49,8 +49,8 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     private var currentXValue: Float = 0f // X축 값
     private var TAG = "TAG_Ble"
 
-    private var dataBuffer = mutableListOf<List<Float>>() // 30초 동안 데이터를 버퍼에 저장
-    private val chartUpdateInterval = 30_000L // 30초
+    private var dataBuffer = mutableListOf<Float>() // 30초 동안 데이터를 버퍼에 저장
+    private val chartUpdateInterval = 3_600_000L // 60분 (1시간) 기준
     private var isFirstDataReceived = false // 첫 번째 데이터 수신 확인 플래그
     private var blueToothInfoModel: BlueToothInfoModel? = null
 
@@ -128,13 +128,19 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
 
         // X축을 시간 단위로 설정
-        xAxis.granularity = 5f
+        xAxis.granularity = 1f
+        xAxis.axisMinimum = 0f // 최소값을 0으로 설정
+        xAxis.axisMaximum = 23f // 최대값을 23으로 설정 (0~23시)
+
+        yAxisLeft.granularity = 100f
+        yAxisLeft.axisMinimum = 0f
+        yAxisLeft.axisMaximum = 400f
+
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
-                val timeInSeconds = (value * 30).toInt()
-                val minutes = (timeInSeconds / 60) % 60
-                val seconds = timeInSeconds % 60
-                return String.format("%02d:%02d", minutes, seconds)
+                // value를 0~23 사이의 정수로 제한하여 시간으로 표현
+                val hour = value.toInt().coerceIn(0, 23)
+                return "${hour}:00"
             }
         }
     }
@@ -344,8 +350,8 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
                 startChartUpdateTimer()
             }
 
-            // 데이터를 버퍼에 추가 (0.5초마다)
-            dataBuffer.add(values)
+           /* // 데이터를 버퍼에 추가 (0.5초마다)
+            dataBuffer.add(values)*/
 
             processBluetoothData(values)
         }
@@ -357,7 +363,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
                 delay(chartUpdateInterval) // 30초 대기
 
                 // 30초 동안 수집된 데이터를 차트에 추가
-                updateChartWithBufferedData()
+                addHourlyAverageToChart() // 1시간 동안 수집한 데이터의 평균을 차트에 추가
 
                 // 데이터 버퍼 초기화
                 dataBuffer.clear()
@@ -469,36 +475,44 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     private fun addEntryToChartImmediately(data: List<Float>) {
         if(data.isEmpty()) return
         val fourthData = data[3]
-        val averageFourthData = data.average().toFloat()
+        dataBuffer.add(fourthData) // 버퍼에 추가
 
-        // 차트에 데이터 추가
-        addEntryToChart(currentXValue, averageFourthData, fourthData)
-        currentXValue += 1f // X축 값 증가
+        // 첫 번째 데이터는 즉시 차트에 추가
+        if (!isFirstDataReceived) {
+            addHourlyAverageToChart()
+            isFirstDataReceived = true
+            startChartUpdateTimer() // 1시간 간격으로 차트를 업데이트하는 타이머 시작
+        }
     }
-
-    // 버퍼에 쌓인 데이터를 차트에 추가
-    private fun updateChartWithBufferedData() {
+    private fun addHourlyAverageToChart() {
         if (dataBuffer.isNotEmpty()) {
-            // 버퍼에서 마지막 데이터를 사용하여 차트 업데이트
-            val lastFourthData = dataBuffer.last()[3]
-            val averageFourthData = dataBuffer.flatten().average().toFloat()
+            // 데이터의 평균을 계산
+            val average = dataBuffer.average().toFloat()
 
-            // 차트에 데이터 추가
-            addEntryToChart(currentXValue, averageFourthData, lastFourthData)
-            currentXValue += 1f // X축 값 증가 (30초마다 1 증가)
+            // 시간 단위의 차트에 평균 데이터 추가
+            addEntryToChart(currentXValue, average, average)
+            currentXValue += 1f // 다음 시간대로 이동
         }
     }
 
+
     // 차트에 엔트리 추가 (LineChart와 BarChart 모두 추가)
+    private var collectionStartTime = Calendar.getInstance().get(Calendar.HOUR_OF_DAY).toFloat() // 수집 시작 시간
+
+    // 기존 addEntryToChart 메서드 사용
     private fun addEntryToChart(time: Float, lineValue: Float, barValue: Float) {
+        // 수집 시작 시간 기준으로 X축 값을 설정
+        val adjustedTime = collectionStartTime + time
+
         // LineChart 데이터 추가
-        lineDataSet.addEntry(Entry(time, lineValue))
+        lineDataSet.addEntry(Entry(adjustedTime, lineValue))
 
         // BarChart 데이터 추가
-        barDataSet.addEntry(BarEntry(time, barValue))
+        barDataSet.addEntry(BarEntry(adjustedTime, barValue))
 
         val barData = BarData(barDataSet)
         barData.barWidth = 0.1f
+
         // CombinedData에 LineData와 BarData 추가
         val combinedData = CombinedData()
         combinedData.setData(LineData(lineDataSet))
@@ -506,8 +520,11 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
         combinedChart.data = combinedData
         combinedChart.notifyDataSetChanged()
-        combinedChart.setVisibleXRangeMaximum(60f) // 최대 10개 데이터 보이게
-        combinedChart.moveViewToX(combinedData.entryCount.toFloat())
+        combinedChart.invalidate()
+
+        // X축의 보이는 범위를 조정하여 수집 시작 시간에 맞춰 그래프 이동
+        combinedChart.setVisibleXRangeMaximum(10f) // 10시간의 범위를 화면에 보이게 설정
+        combinedChart.moveViewToX(adjustedTime) // 현재 데이터에 맞춰 화면 이동
     }
 
     // 버튼 색상 업데이트
