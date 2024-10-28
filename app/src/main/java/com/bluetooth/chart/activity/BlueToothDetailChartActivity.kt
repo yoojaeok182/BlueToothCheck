@@ -53,6 +53,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     private val chartUpdateInterval = 3_600_000L // 60분 (1시간) 기준
     private var isFirstDataReceived = false // 첫 번째 데이터 수신 확인 플래그
     private var blueToothInfoModel: BlueToothInfoModel? = null
+    private var collectionStartTimeMillis: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +64,8 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     }
 
     private fun init() {
+        collectionStartTimeMillis = System.currentTimeMillis()
+
         // BLE 정보 가져오기
         val intent = intent
         if (intent.hasExtra("blueToothData")) {
@@ -84,7 +87,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             return
         }
 
-        generateFakeData()
+//        generateFakeData() //가상의 데이터
         connectToBLEDevice()
     }
 
@@ -291,8 +294,6 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG, "Characteristic read successfully: ${characteristic.uuid} - Value: ${characteristic.value}")
-                /* val data = characteristic.value
-                 processBLEData(data)*/
             } else {
                 Log.e(TAG, "Failed to read characteristic: $status")
             }
@@ -315,6 +316,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             val data = characteristic.value
             Log.e(TAG, "onCharacteristicChanged : $data")
 
+            //blueTooth 기기로부터 데이터를 수신한다.
             processBLEData(data)
         }
     }
@@ -324,8 +326,8 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         // 데이터 처리 로직 구현 (예: 파싱, 차트에 추가)
         // 예시: 데이터를 Float 리스트로 변환 후 차트에 추가
         val values = parseBLEData(data)
-
-       /* if(values.isEmpty()){
+//값이 비어있으면 데이터를 초기화
+        if(values.isEmpty()){
             Log.e(TAG, "불루투스 데이터를 받아올수 없어요")
             // 데이터 초기화
             binding.tvCurrentOutPut.text = "0"
@@ -341,22 +343,22 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             // 리스트도 초기화
             dailyFourthDataList.clear()
             return
-        }*/
+        }
+
         scope.launch {
 
+            // 차트1,차트2,차트3 부분 차트화
             processBluetoothData(values)
-            // 첫 번째 데이터는 즉시 차트에 추가
-            if (!isFirstDataReceived) {
 
-//                addEntryToChartImmediately(values)
+            // 기획서 6번항목 첫 번째 데이터는 즉시 차트에 추가
+            if (!isFirstDataReceived) {
+                addEntryToChartImmediately(values)
                 isFirstDataReceived = true
 
                 // 이후에는 30초 간격으로 업데이트
-//                startChartUpdateTimer()
+                startChartUpdateTimer()
             }
 
-           /* // 데이터를 버퍼에 추가 (0.5초마다)
-            dataBuffer.add(values)*/
         }
     }
     // 가짜 데이터 생성 함수
@@ -386,6 +388,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
     }
 
+    //받아온 데이터를 String 데이터로 변환
     private fun parseBLEData(data: ByteArray): List<Float> {
         Log.e(TAG, "parseBLEData: $data")
 
@@ -478,9 +481,16 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         val averageFourthData = dailyFourthDataList.average().toFloat()
         binding.tvTodayPower.text = "$averageFourthData"
 
-        // 현재 시간 표시
-        val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-        binding.tvTodayPowerTime.text = currentTime
+        /*
+        현재 시간 표시
+        경과 시간 계산
+        */
+        // 경과 시간 계산 (hours 단위로 소수점 한 자리까지 표현)
+        val elapsedTimeMillis = System.currentTimeMillis() - collectionStartTimeMillis
+        val elapsedTimeHours = elapsedTimeMillis / (1000 * 60 * 60).toFloat() // 경과 시간을 시간 단위로 변환
+
+        // 소수점 한 자리까지 표현
+        binding.tvTodayPowerTime.text = String.format("%.1f", elapsedTimeHours)
 
         // 버튼 색상 업데이트
         updateButtonColors(firstData)
@@ -496,12 +506,13 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         if (!isFirstDataReceived) {
             addHourlyAverageToChart()
             isFirstDataReceived = true
-            startChartUpdateTimer() // 1시간 간격으로 차트를 업데이트하는 타이머 시작
         }
+        startChartUpdateTimer() // 1시간 간격으로 차트를 업데이트하는 타이머 시작
     }
     private fun addHourlyAverageToChart() {
         if (dataBuffer.isNotEmpty()) {
             // 데이터의 평균을 계산
+            //시간당 데이터를 dataBuffer에 담고 dataBuffer의 average 값을 추출하여 차트에 전달
             val average = dataBuffer.average().toFloat()
 
             // 시간 단위의 차트에 평균 데이터 추가
@@ -518,8 +529,8 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     private fun addEntryToChart(time: Float, lineValue: Float, barValue: Float) {
         Log.d(TAG, "addEntryToChart: $time, $lineValue, $barValue")
         // 수집 시작 시간 기준으로 X축 값을 설정
-//        val adjustedTime = collectionStartTime + time
-        val adjustedTime = 0 + time
+        //중요 : collectionStartTime 에 의해 차트가 그려지기 시작하는 시간대가 달라짐
+        val adjustedTime = collectionStartTime + time
 
         // LineChart 데이터 추가
         lineDataSet.addEntry(Entry(adjustedTime, barValue))
