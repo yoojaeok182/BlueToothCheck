@@ -84,6 +84,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             return
         }
 
+        generateFakeData()
         connectToBLEDevice()
     }
 
@@ -109,7 +110,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         val xAxis: XAxis = combinedChart.xAxis
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         xAxis.granularity = 1f // X축 단위
-
+        xAxis.labelCount = 24
         val yAxisLeft: YAxis = combinedChart.axisLeft
         yAxisLeft.granularity = 10f
         combinedChart.axisRight.isEnabled = false // 오른쪽 Y축 비활성화
@@ -134,15 +135,20 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
         yAxisLeft.granularity = 100f
         yAxisLeft.axisMinimum = 0f
-        yAxisLeft.axisMaximum = 400f
+        yAxisLeft.axisMaximum = 600f
 
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
                 // value를 0~23 사이의 정수로 제한하여 시간으로 표현
                 val hour = value.toInt().coerceIn(0, 23)
+                Log.d(TAG, "getFormattedValue: $hour")
                 return "${hour}:00"
             }
         }
+        combinedChart.setVisibleXRange(24f, 24f) // X축의 보이는 범위를 24시간으로 고정
+        combinedChart.isDragEnabled = false // 드래그 비활성화
+        combinedChart.isScaleXEnabled = false // X축 스케일 비활성화
+        combinedChart.isScaleYEnabled = false // Y축 스케일 비활성화
     }
 
     private fun connectToBLEDevice() {
@@ -319,7 +325,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         // 예시: 데이터를 Float 리스트로 변환 후 차트에 추가
         val values = parseBLEData(data)
 
-        if(values.isEmpty()){
+       /* if(values.isEmpty()){
             Log.e(TAG, "불루투스 데이터를 받아올수 없어요")
             // 데이터 초기화
             binding.tvCurrentOutPut.text = "0"
@@ -335,27 +341,36 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             // 리스트도 초기화
             dailyFourthDataList.clear()
             return
-        }
-
+        }*/
         scope.launch {
 
-
+            processBluetoothData(values)
             // 첫 번째 데이터는 즉시 차트에 추가
             if (!isFirstDataReceived) {
-                processBluetoothData(values)
-                addEntryToChartImmediately(values)
+
+//                addEntryToChartImmediately(values)
                 isFirstDataReceived = true
 
                 // 이후에는 30초 간격으로 업데이트
-                startChartUpdateTimer()
+//                startChartUpdateTimer()
             }
 
            /* // 데이터를 버퍼에 추가 (0.5초마다)
             dataBuffer.add(values)*/
-
-            processBluetoothData(values)
         }
     }
+    // 가짜 데이터 생성 함수
+    private fun generateFakeData() {
+        // 0시부터 20시까지 21개의 데이터 생성
+        for (i in 0..20) {
+            val fakeLineValue = (0..400).random().toFloat()  // 0~400 사이의 임의 값
+            val fakeBarValue = (0..400).random().toFloat()   // 0~400 사이의 임의 값
+
+            // 각 시간마다 데이터를 추가
+            addEntryToChart(i.toFloat(), fakeLineValue, fakeBarValue)
+        }
+    }
+
     // 30초마다 차트 업데이트
     private fun startChartUpdateTimer() {
         scope.launch {
@@ -501,17 +516,19 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
     // 기존 addEntryToChart 메서드 사용
     private fun addEntryToChart(time: Float, lineValue: Float, barValue: Float) {
+        Log.d(TAG, "addEntryToChart: $time, $lineValue, $barValue")
         // 수집 시작 시간 기준으로 X축 값을 설정
-        val adjustedTime = collectionStartTime + time
+//        val adjustedTime = collectionStartTime + time
+        val adjustedTime = 0 + time
 
         // LineChart 데이터 추가
-        lineDataSet.addEntry(Entry(adjustedTime, lineValue))
+        lineDataSet.addEntry(Entry(adjustedTime, barValue))
 
         // BarChart 데이터 추가
         barDataSet.addEntry(BarEntry(adjustedTime, barValue))
 
         val barData = BarData(barDataSet)
-        barData.barWidth = 0.1f
+        barData.barWidth = 0.2f
 
         // CombinedData에 LineData와 BarData 추가
         val combinedData = CombinedData()
