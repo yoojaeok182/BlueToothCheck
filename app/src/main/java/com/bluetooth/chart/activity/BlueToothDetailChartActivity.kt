@@ -92,28 +92,20 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        binding.tvCurrentOutPut.text = "0"
-        binding.tvTodayPower.text = "0"
-        binding.tvTodayPowerTime.text = "0"
-        binding.chart1.value = 0f
-        binding.tvInverterPer.text = "0%"
-        binding.chart2.value = 0f
-        binding.tvCurrentPowerOutputPer.text = "0%"
-        binding.chart3.value = 0f
-        binding.tvPowerGenerationEfciency.text = "0%"
-
-
+       resetDataDisplay()
+        //하단 오론쪽 ic_exit 이미지 버튼 이벤트
         binding.ivExst.setOnClickListener {
             finish()
         }
     }
 
+    //발전효율 차트 초기화
     private fun setupCombinedChart() {
-        combinedChart = binding.chart4
+        combinedChart = binding.chart4 // 발전량 추이 차트
         val xAxis: XAxis = combinedChart.xAxis
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         xAxis.granularity = 1f // X축 단위
-        xAxis.labelCount = 24
+        xAxis.labelCount = 24 // 발전량 추이 차트 하단 x축 label 개수 (0:0 ~23:0)
         val yAxisLeft: YAxis = combinedChart.axisLeft
         yAxisLeft.granularity = 10f
         combinedChart.axisRight.isEnabled = false // 오른쪽 Y축 비활성화
@@ -136,10 +128,12 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         xAxis.axisMinimum = 0f // 최소값을 0으로 설정
         xAxis.axisMaximum = 23f // 최대값을 23으로 설정 (0~23시)
 
+        // 차트 왼쪽 세로 라벨 (0~600)kw 값정의
         yAxisLeft.granularity = 100f
         yAxisLeft.axisMinimum = 0f
         yAxisLeft.axisMaximum = 600f
 
+        //하단 라벨 벨류 정의
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
                 // value를 0~23 사이의 정수로 제한하여 시간으로 표현
@@ -154,6 +148,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         combinedChart.isScaleYEnabled = false // Y축 스케일 비활성화
     }
 
+    //BLE 기기 접속
     private fun connectToBLEDevice() {
         if (blueToothInfoModel == null) {
             Toast.makeText(this, "Bluetooth 연결 실패", Toast.LENGTH_SHORT).show()
@@ -222,13 +217,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
                                             Manifest.permission.BLUETOOTH_CONNECT
                                         ) != PackageManager.PERMISSION_GRANTED
                                     ) {
-                                        // TODO: Consider calling
-                                        //    ActivityCompat#requestPermissions
-                                        // here to request the missing permissions, and then overriding
-                                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                                        //                                          int[] grantResults)
-                                        // to handle the case where the user grants the permission. See the documentation
-                                        // for ActivityCompat#requestPermissions for more details.
+                                        ActivityCompat.requestPermissions(this@BlueToothDetailChartActivity, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
                                         return
                                     }
 
@@ -246,12 +235,6 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
                                         gatt.writeDescriptor(descriptor)
                                     }
 
-                                    /*  if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) {
-  //                                        gatt.setCharacteristicNotification(characteristic, true)
-                                          gatt.readCharacteristic(characteristic)
-
-
-                                      }*/
                                 }
                             }
 
@@ -274,13 +257,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
                         Manifest.permission.BLUETOOTH_CONNECT
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
-                    // TODO: Consider calling
-                    //    ActivityCompat#requestPermissions
-                    // here to request the missing permissions, and then overriding
-                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                    //                                          int[] grantResults)
-                    // to handle the case where the user grants the permission. See the documentation
-                    // for ActivityCompat#requestPermissions for more details.
+                    ActivityCompat.requestPermissions(this@BlueToothDetailChartActivity, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 10)
                     return
                 }
                 Log.d(TAG, "Descriptor written successfully: ${characteristic.value}")
@@ -298,17 +275,6 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
                 Log.e(TAG, "Failed to read characteristic: $status")
             }
         }
-
-        /* override fun onCharacteristicRead(
-             gatt: BluetoothGatt,
-             characteristic: BluetoothGattCharacteristic,
-             value: ByteArray,
-             status: Int
-         ) {
-             Log.e(TAG, "onCharacteristicRead : $value , $status")
-
-             super.onCharacteristicRead(gatt, characteristic, value, status)
-         }*/
         @Deprecated("Deprecated in Java")
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
 
@@ -320,7 +286,20 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             processBLEData(data)
         }
     }
+    // 데이터 초기화 함수
+    private fun resetDataDisplay() {
+        binding.tvCurrentOutPut.text = "0.0" //현재 출력 textView
+        binding.tvTodayPower.text = "0.0" //금일 발전량 textView
+        binding.tvTodayPowerTime.text = "0" //금일발전시간 textView
+        binding.chart1.value = 0f //인버터(DC/AC)변환효율 차트 value값
+        binding.tvInverterPer.text = "0%" //인버터(DC/AC)변환효율 textView
+        binding.chart2.value = 0f //현재발전출력 차트값
+        binding.tvCurrentPowerOutputPer.text = "0%" //현재발전출력 textView
+        binding.chart3.value = 0f  //발전효율 차트
+        binding.tvPowerGenerationEfciency.text = "0%" //발전효율 textView
 
+        dailyFourthDataList.clear()
+    }
     @SuppressLint("SetTextI18n")
     private fun processBLEData(data: ByteArray) {
         // 데이터 처리 로직 구현 (예: 파싱, 차트에 추가)
@@ -330,18 +309,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         if(values.isEmpty()){
             Log.e(TAG, "불루투스 데이터를 받아올수 없어요")
             // 데이터 초기화
-            binding.tvCurrentOutPut.text = "0"
-            binding.tvTodayPower.text = "0"
-            binding.tvTodayPowerTime.text = "0"
-            binding.chart1.value = 0f
-            binding.tvInverterPer.text = "0%"
-            binding.chart2.value = 0f
-            binding.tvCurrentPowerOutputPer.text = "0%"
-            binding.chart3.value = 0f
-            binding.tvPowerGenerationEfciency.text = "0%"
-
-            // 리스트도 초기화
-            dailyFourthDataList.clear()
+            resetDataDisplay()
             return
         }
 
@@ -349,30 +317,22 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
             // 차트1,차트2,차트3 부분 차트화
             processBluetoothData(values)
-
-            // 기획서 6번항목 첫 번째 데이터는 즉시 차트에 추가
-            if (!isFirstDataReceived) {
-                addEntryToChartImmediately(values)
-                isFirstDataReceived = true
-
-                // 이후에는 30초 간격으로 업데이트
-                startChartUpdateTimer()
-            }
-
+            addEntryToChartImmediately(values)
         }
     }
-    // 가짜 데이터 생성 함수
-    private fun generateFakeData() {
-        // 0시부터 20시까지 21개의 데이터 생성
-        for (i in 0..20) {
-            val fakeLineValue = (0..400).random().toFloat()  // 0~400 사이의 임의 값
-            val fakeBarValue = (0..400).random().toFloat()   // 0~400 사이의 임의 값
+    // 첫 번째 데이터를 즉시 차트에 추가
+    private fun addEntryToChartImmediately(data: List<Float>) {
+        if(data.isEmpty()) return
+        val fourthData = data[3]
+        dataBuffer.add(fourthData) // 버퍼에 추가
 
-            // 각 시간마다 데이터를 추가
-            addEntryToChart(i.toFloat(), fakeLineValue, fakeBarValue)
+        // 첫 번째 데이터는 즉시 차트에 추가
+        if (!isFirstDataReceived) {
+            addHourlyAverageToChart()
+            isFirstDataReceived = true
         }
+        startChartUpdateTimer() // 1시간 간격으로 차트를 업데이트하는 타이머 시작
     }
-
     // 30초마다 차트 업데이트
     private fun startChartUpdateTimer() {
         scope.launch {
@@ -423,16 +383,16 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     private fun processBluetoothData(data: List<Float>) {
         if (data.size < 4) return
 
-        val firstData = data[0]
-        val thirdData = data[2]
-        val fourthData = data[3]
+        val firstData = data[0] //1번데이터
+        val thirdData = data[2] //3번 데이터
+        val fourthData = data[3] //4번 데이터
 
         // 첫 번째 데이터 표시
         val number = firstData.toDouble()
-        val rounded = (number * 10).roundToInt() / 10.0
+        val rounded = (number * 10).roundToInt() / 10.0 // 소수 첫째 자리만
 
         val number2 = thirdData.toDouble()
-        val rounded2 = (number2 * 10).roundToInt() / 10.0
+        val rounded2 = (number2 * 10).roundToInt() / 10.0 //3번데이터 소수 첫째 자리만
 
 
         //2024.10.27 데이터값 1번 차트값이 220보다 클경우 그래프 최대치 100%로
@@ -452,13 +412,13 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             chart2Value = thirdData
         }
 
-        binding.chart1.value = chart1Value
-        binding.tvInverterPer.text = "$rounded %"
+        binding.chart1.value = chart1Value //인버터(DC/AC)변환효율 차트값
+        binding.tvInverterPer.text = "$rounded %"  //인버터(DC/AC)변환효율 textView 값, 기획서 1번
 
         // 세 번째 데이터 표시
         binding.chart2.value = chart2Value
-        binding.tvCurrentPowerOutputPer.text = "$rounded2 kW"
-        binding.tvCurrentOutPut.text = "$rounded2"
+        binding.tvCurrentPowerOutputPer.text = "$rounded2 kW" //현재 발전 출력 textView 값, 기획서 2번
+        binding.tvCurrentOutPut.text = "$rounded2" // 현재출력 textView값 기획서 2번
 
         // 네 번째 데이터 비율 계산
         //2024.10.27  차트 3 번관련해서 1번데이터값이 220보다 크냐 작냐에 따라 서 계산하도록 처리
@@ -473,13 +433,13 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
         val rounded3 = (efficiency * 10).roundToInt() / 10.0
 
-        binding.chart3.value = efficiency
-        binding.tvPowerGenerationEfciency.text = "$rounded3 %"
+        binding.chart3.value = efficiency //발전효율 차트값
+        binding.tvPowerGenerationEfciency.text = "$rounded3 %" //발전효율 텍스트값 기획서 3번
 
         // 네 번째 데이터 평균 계산
         dailyFourthDataList.add(fourthData)
         val averageFourthData = dailyFourthDataList.average().toFloat()
-        binding.tvTodayPower.text = "$averageFourthData"
+        binding.tvTodayPower.text = "$averageFourthData" //금일발전량 평균값 기획서 4번
 
         /*
         현재 시간 표시
@@ -490,25 +450,13 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         val elapsedTimeHours = elapsedTimeMillis / (1000 * 60 * 60).toFloat() // 경과 시간을 시간 단위로 변환
 
         // 소수점 한 자리까지 표현
-        binding.tvTodayPowerTime.text = String.format("%.1f", elapsedTimeHours)
+        binding.tvTodayPowerTime.text = String.format("%.1f", elapsedTimeHours)  //기획서 5번 , 금일 발전 시간
 
         // 버튼 색상 업데이트
         updateButtonColors(firstData)
     }
 
-    // 첫 번째 데이터를 즉시 차트에 추가
-    private fun addEntryToChartImmediately(data: List<Float>) {
-        if(data.isEmpty()) return
-        val fourthData = data[3]
-        dataBuffer.add(fourthData) // 버퍼에 추가
 
-        // 첫 번째 데이터는 즉시 차트에 추가
-        if (!isFirstDataReceived) {
-            addHourlyAverageToChart()
-            isFirstDataReceived = true
-        }
-        startChartUpdateTimer() // 1시간 간격으로 차트를 업데이트하는 타이머 시작
-    }
     private fun addHourlyAverageToChart() {
         if (dataBuffer.isNotEmpty()) {
             // 데이터의 평균을 계산
@@ -556,6 +504,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     }
 
     // 버튼 색상 업데이트
+    //Grid Connect, UPS Stand Alone 버튼 색상 변경
     private fun updateButtonColors(firstData: Float) {
         if (firstData > 0) {
             binding.gridConnectBtn.setBackgroundResource(R.drawable.gradient_color_01)
