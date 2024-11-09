@@ -59,6 +59,10 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     private var collectionStartTimeMillis: Long = 0
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var updateTimeRunnable: Runnable
+    // 마지막으로 수신한 데이터를 저장할 변수
+    private var lastReceivedData: List<Float> = listOf()
+    // Runnable이 실행 중인지 확인하는 변수
+    private var isUpdateRunnableRunning = false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -311,10 +315,38 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             val data = characteristic.value
             Log.e(TAG, "onCharacteristicChanged : $data")
 
-            //blueTooth 기기로부터 데이터를 수신한다.
-            processBLEData(data)
+            Log.e(TAG, "onCharacteristicChanged : $data")
+
+            // 데이터를 변환하여 List<Float> 형태로 저장
+            lastReceivedData = convertDataToFloatList(data)
+
+            // 처음에만 Runnable 시작
+            if (lastReceivedData.isNotEmpty() && !isUpdateRunnableRunning) {
+                isUpdateRunnableRunning = true
+                handler.post(updateRunnable)
+            }
         }
     }
+
+    //10초마다 차트 1,2,3  데이터 갱신 (핸들러)
+    private val updateRunnable = object : Runnable {
+        override fun run() {
+            // 데이터를 처리하고 화면에 그리는 함수 호출
+            processBluetoothData(lastReceivedData)
+
+            // 10초 후에 다시 실행
+            handler.postDelayed(this, 10000)
+        }
+    }
+
+    // 데이터를 List<Float>로 변환하는 함수
+    private fun convertDataToFloatList(data: ByteArray): List<Float> {
+        // 변환 로직을 구현해야 합니다.
+        // 예시로 data를 Float로 변환한다고 가정
+        return data.map { it.toFloat() }
+    }
+
+
     // 데이터 초기화 함수
     private fun resetDataDisplay() {
         binding.tvCurrentOutPut.text = "0.0" //현재 출력 textView
@@ -549,6 +581,9 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             // for ActivityCompat#requestPermissions for more details.
             return
         }
+        handler.removeCallbacks(updateRunnable)
+        isUpdateRunnableRunning = false
+
         handler.removeCallbacks(updateTimeRunnable)
         bluetoothGatt?.close()
         isReceivingData = false
