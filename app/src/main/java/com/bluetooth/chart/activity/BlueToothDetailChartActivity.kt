@@ -14,6 +14,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -53,7 +55,11 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     private val chartUpdateInterval = 3_600_000L // 60분 (1시간) 기준
     private var isFirstDataReceived = false // 첫 번째 데이터 수신 확인 플래그
     private var blueToothInfoModel: BlueToothInfoModel? = null
-    private var collectionStartTimeMillis: Long = 0L
+
+    private var collectionStartTimeMillis: Long = 0
+    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var updateTimeRunnable: Runnable
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +70,9 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     }
 
     private fun init() {
+        // 페이지가 시작될 때 현재 시간을 저장
         collectionStartTimeMillis = System.currentTimeMillis()
+
 
         // BLE 정보 가져오기
         val intent = intent
@@ -89,6 +97,27 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
 //        generateFakeData() //가상의 데이터
         connectToBLEDevice()
+
+        // 주기적으로 시간을 업데이트하는 Runnable 설정
+        //2024.11.09 금일 발전 시간
+        updateTimeRunnable = Runnable {
+            updateElapsedTime()
+            // 1초마다 다시 실행
+            handler.postDelayed(updateTimeRunnable, 1000)
+        }
+
+        // Runnable을 시작
+        handler.post(updateTimeRunnable)
+
+    }
+    private fun updateElapsedTime() {
+        // 경과 시간을 계산
+        val elapsedTimeMillis = System.currentTimeMillis() - collectionStartTimeMillis
+        val elapsedTimeHours = elapsedTimeMillis / (1000 * 60 * 60).toFloat()
+
+        Log.d(TAG,"time : $elapsedTimeHours [${String.format("%.1f", elapsedTimeHours)}]")
+        // 소수점 한 자리까지 표현하여 UI 업데이트
+        binding.tvTodayPowerTime.text = String.format("%.1f", elapsedTimeHours)
     }
 
     private fun setupUI() {
@@ -441,17 +470,6 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         val averageFourthData = dailyFourthDataList.average().toFloat()
         binding.tvTodayPower.text = "$averageFourthData" //금일발전량 평균값 기획서 4번
 
-        /*
-        현재 시간 표시
-        경과 시간 계산
-        */
-        // 경과 시간 계산 (hours 단위로 소수점 한 자리까지 표현)
-        val elapsedTimeMillis = System.currentTimeMillis() - collectionStartTimeMillis
-        val elapsedTimeHours = elapsedTimeMillis / (1000 * 60 * 60).toFloat() // 경과 시간을 시간 단위로 변환
-
-        // 소수점 한 자리까지 표현
-        binding.tvTodayPowerTime.text = String.format("%.1f", elapsedTimeHours)  //기획서 5번 , 금일 발전 시간
-
         // 버튼 색상 업데이트
         updateButtonColors(firstData)
     }
@@ -531,7 +549,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             // for ActivityCompat#requestPermissions for more details.
             return
         }
-
+        handler.removeCallbacks(updateTimeRunnable)
         bluetoothGatt?.close()
         isReceivingData = false
         scope.cancel()
