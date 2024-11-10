@@ -25,14 +25,13 @@ class BlueToothInformationActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
-        enableEdgeToEdge()
         binding = ActivityBluetoothInformationBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.informationMain)) { v, insets ->
+       /* ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.informationMain)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom)
             insets
-        }
+        }*/
         val intent = intent
         if (intent.hasExtra("blueToothData")) {
 

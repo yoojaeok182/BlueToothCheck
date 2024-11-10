@@ -123,14 +123,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
-        enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+       /* ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom)
             insets
-        }
+        }*/
         // 블루투스 어댑터 초기화
         // 블루투스 어댑터 초기화
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
