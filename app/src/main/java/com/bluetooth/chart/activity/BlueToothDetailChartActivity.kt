@@ -333,6 +333,12 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             }
             addEntryToChartImmediately(lastReceivedData)
 
+// 타이머가 처음 시작될 때만 startChartUpdateTimer 호출
+            if (!isReceivingData) {
+                isReceivingData = true
+                startChartUpdateTimer() // 타이머 시작
+            }
+
         }
     }
 
@@ -364,7 +370,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         dailyFourthDataList.clear()
     }
     @SuppressLint("SetTextI18n")
-    private fun processBLEData(data: ByteArray) {
+  /*  private fun processBLEData(data: ByteArray) {
         // 데이터 처리 로직 구현 (예: 파싱, 차트에 추가)
         // 예시: 데이터를 Float 리스트로 변환 후 차트에 추가
         val values = parseBLEData(data)
@@ -382,7 +388,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             processBluetoothData(values)
             addEntryToChartImmediately(values)
         }
-    }
+    }*/
     // 첫 번째 데이터를 즉시 차트에 추가
     private fun addEntryToChartImmediately(data: List<Float>) {
         if(data.isEmpty()) return
@@ -394,12 +400,12 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             addHourlyAverageToChart()
             isFirstDataReceived = true
         }
-        startChartUpdateTimer() // 1시간 간격으로 차트를 업데이트하는 타이머 시작
+//        startChartUpdateTimer() // 1시간 간격으로 차트를 업데이트하는 타이머 시작
     }
-    // 30초마다 차트 업데이트
+    // 1시간 차트 업데이트
     private fun startChartUpdateTimer() {
         scope.launch {
-            while (isReceivingData) {
+            while (true) { // 타이머가 무한히 반복되도록 설정
                 delay(chartUpdateInterval) // 30초 대기
 
                 // 30초 동안 수집된 데이터를 차트에 추가
@@ -408,6 +414,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
                 // 데이터 버퍼 초기화
                 dataBuffer.clear()
             }
+
         }
     }
 
