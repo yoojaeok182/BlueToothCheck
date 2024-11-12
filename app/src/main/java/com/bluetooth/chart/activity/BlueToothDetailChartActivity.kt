@@ -498,10 +498,10 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
          * 세번째 그래프
          */
         val maxEfficiency = 16.0 // 최대값 16을 100%로 기준
-
+        var rawEfficiency = 0.0f
         val efficiency = if (firstData != 0f) {
             // 4번째 데이터 / 1번째 데이터
-            val rawEfficiency = fourthData / firstData
+             rawEfficiency = fourthData / firstData
             // 16을 기준으로 100% 스케일로 변환
             val scaledEfficiency = (rawEfficiency / maxEfficiency * 100).toFloat()
             minOf(scaledEfficiency, 100f) // 최대 100%로 제한
@@ -510,7 +510,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
         Log.d(TAG,"value 3 : ${fourthData / firstData} | ${((fourthData / firstData) / maxEfficiency * 100).toFloat()} [${minOf(((fourthData / firstData) / maxEfficiency * 100).toFloat(), 100f) }]")
 
-        val rounded3 = (efficiency * 10).roundToInt() / 10.0
+        val rounded3 = (rawEfficiency * 10).roundToInt() / 10.0
 
         binding.chart3.value = efficiency // 피크전력감지계통연계주입전류 차트값
         binding.tvPowerGenerationEfciency.text = "$rounded3 A" // 피크전력감지계통연계주입전류 텍스트값, 기획서 3번
