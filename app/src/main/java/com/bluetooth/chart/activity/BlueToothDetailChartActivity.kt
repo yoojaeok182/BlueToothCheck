@@ -318,15 +318,14 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             Log.e(TAG, "onCharacteristicChanged : $data")
 
             // 데이터를 변환하여 List<Float> 형태로 저장
-            lastReceivedData = convertDataToFloatList(data)
+            lastReceivedData = parseBLEData(data)
 
             // 처음에만 Runnable 시작
             if (lastReceivedData.isNotEmpty() && !isUpdateRunnableRunning) {
                 isUpdateRunnableRunning = true
                 handler.post(updateRunnable)
             }
-            val values = parseBLEData(data)
-            addEntryToChartImmediately(values)
+            addEntryToChartImmediately(lastReceivedData)
 
         }
     }
@@ -342,12 +341,6 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
     }
 
-    // 데이터를 List<Float>로 변환하는 함수
-    private fun convertDataToFloatList(data: ByteArray): List<Float> {
-        // 변환 로직을 구현해야 합니다.
-        // 예시로 data를 Float로 변환한다고 가정
-        return data.map { it.toFloat() }
-    }
 
 
     // 데이터 초기화 함수
