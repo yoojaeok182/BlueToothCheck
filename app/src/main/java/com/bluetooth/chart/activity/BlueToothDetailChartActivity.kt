@@ -457,6 +457,9 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         val number2 = thirdData.toDouble()
         val rounded2 = (number2 * 10).roundToInt() / 10.0 //3번데이터 소수 첫째 자리만
 
+        /**
+         * 첫번째 그래프
+         */
         val maxFirstData = 264.0
 
         //2024.10.27 데이터값 1번 차트값이 220보다 클경우 그래프 최대치 100%로
@@ -466,20 +469,23 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             (firstData / maxFirstData * 100).toFloat()
         }
 
+
+        binding.chart1.value = chart1Value //인버터(DC/AC)변환효율 차트값
+        binding.tvInverterPer.text = "$rounded %"  //인버터(DC/AC)변환효율 textView 값, 기획서 1번
+
+        /**
+         * 두번째 그래프
+         */
         //2024.10.27 데이터값 3번 값  627.12 보다 클경우 그래프 최대치 100%로
 // 3번 값에 대한 처리
         val maxChart2Value = 6000.0 // 최대값 6000을 기준으로 설정
-
-// 3번 값에 대한 처리
+        // 3번 값에 대한 처리
         val chart2Value: Float = if (thirdData >= maxChart2Value) {
             100f
         } else {
             // 100% 스케일로 변환
             (thirdData / maxChart2Value * 100).toFloat()
         }
-        binding.chart1.value = chart1Value //인버터(DC/AC)변환효율 차트값
-        binding.tvInverterPer.text = "$rounded %"  //인버터(DC/AC)변환효율 textView 값, 기획서 1번
-
         // 세 번째 데이터 표시
         binding.chart2.value = chart2Value
         binding.tvCurrentPowerOutputPer.text = "$rounded2 kW" //현재 발전 출력 textView 값, 기획서 2번
@@ -488,6 +494,9 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         // 네 번째 데이터 비율 계산
         //2024.10.27  차트 3 번관련해서 1번데이터값이 220보다 크냐 작냐에 따라 서 계산하도록 처리
 
+        /**
+         * 세번째 그래프
+         */
         val maxEfficiency = 16.0 // 최대값 16을 100%로 기준
 
         val efficiency = if (firstData != 0f) {
