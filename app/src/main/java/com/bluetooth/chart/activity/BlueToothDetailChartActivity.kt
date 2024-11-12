@@ -352,14 +352,14 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     // 데이터 초기화 함수
     private fun resetDataDisplay() {
         binding.tvCurrentOutPut.text = "0.0" //현재 출력 textView
-        binding.tvTodayPower.text = "0.0" //금일 발전량 textView
-        binding.tvTodayPowerTime.text = "0" //금일발전시간 textView
-        binding.chart1.value = 0f //인버터(DC/AC)변환효율 차트 value값
-        binding.tvInverterPer.text = "0%" //인버터(DC/AC)변환효율 textView
-        binding.chart2.value = 0f //현재발전출력 차트값
-        binding.tvCurrentPowerOutputPer.text = "0%" //현재발전출력 textView
-        binding.chart3.value = 0f  //발전효율 차트
-        binding.tvPowerGenerationEfciency.text = "0%" //발전효율 textView
+        binding.tvTodayPower.text = "0.0" //금일 계통연계 전력량 textView
+        binding.tvTodayPowerTime.text = "0" //금일 계통연계 시간 textView
+        binding.chart1.value = 0f //GRID VOLTAGE 차트 value값
+        binding.tvInverterPer.text = "0 V" //GRID VOLTAGE textView
+        binding.chart2.value = 0f //LOAD POWER 차트값
+        binding.tvCurrentPowerOutputPer.text = "0 W" //LOAD POWER textView
+        binding.chart3.value = 0f  //피크 전력 감지 계통연계 주입 전류 차트
+        binding.tvPowerGenerationEfciency.text = "0 A" //피크 전력 감지 계통연계 주입 전류 textView
 
         dailyFourthDataList.clear()
     }
@@ -470,8 +470,8 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
 
 
-        binding.chart1.value = chart1Value //인버터(DC/AC)변환효율 차트값
-        binding.tvInverterPer.text = "$rounded %"  //인버터(DC/AC)변환효율 textView 값, 기획서 1번
+        binding.chart1.value = chart1Value //GRID VOLTAGE 차트값
+        binding.tvInverterPer.text = "$rounded V"  //GRID VOLTAGE textView 값, 기획서 1번
 
         /**
          * 두번째 그래프
@@ -488,8 +488,8 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         }
         // 세 번째 데이터 표시
         binding.chart2.value = chart2Value
-        binding.tvCurrentPowerOutputPer.text = "$rounded2 kW" //현재 발전 출력 textView 값, 기획서 2번
-        binding.tvCurrentOutPut.text = "$rounded2" // 현재출력 textView값 기획서 2번
+        binding.tvCurrentPowerOutputPer.text = "$rounded2 W" //LOAD POWER textView 값, 기획서 2번
+        binding.tvCurrentOutPut.text = "$rounded2" // LOAD POWER textView값 기획서 2번
 
         // 네 번째 데이터 비율 계산
         //2024.10.27  차트 3 번관련해서 1번데이터값이 220보다 크냐 작냐에 따라 서 계산하도록 처리
@@ -512,8 +512,8 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
 
         val rounded3 = (efficiency * 10).roundToInt() / 10.0
 
-        binding.chart3.value = efficiency // 발전 효율 차트값
-        binding.tvPowerGenerationEfciency.text = "$rounded3 %" // 발전 효율 텍스트값, 기획서 3번
+        binding.chart3.value = efficiency // 피크전력감지계통연계주입전류 차트값
+        binding.tvPowerGenerationEfciency.text = "$rounded3 A" // 피크전력감지계통연계주입전류 텍스트값, 기획서 3번
 
         // 네 번째 데이터 평균 계산
         dailyFourthDataList.add(fourthData)
@@ -579,10 +579,10 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     private fun updateButtonColors(firstData: Float) {
         if (firstData > 0) {
             binding.gridConnectBtn.setBackgroundResource(R.drawable.gradient_color_01)
-            binding.upsStandAloneBtn.setBackgroundResource(R.drawable.gradient_color_02)
+            binding.upsStandAloneBtn.setBackgroundResource(R.drawable.gradient_color_03)
         } else {
-            binding.gridConnectBtn.setBackgroundResource(R.drawable.gradient_color_02)
-            binding.upsStandAloneBtn.setBackgroundResource(R.drawable.gradient_color_01)
+            binding.gridConnectBtn.setBackgroundResource(R.drawable.gradient_color_03)
+            binding.upsStandAloneBtn.setBackgroundResource(R.drawable.gradient_color_02)
         }
     }
 
