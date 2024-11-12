@@ -325,6 +325,9 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
                 isUpdateRunnableRunning = true
                 handler.post(updateRunnable)
             }
+            val values = parseBLEData(data)
+            addEntryToChartImmediately(values)
+
         }
     }
 
