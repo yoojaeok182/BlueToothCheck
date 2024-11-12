@@ -107,7 +107,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         updateTimeRunnable = Runnable {
             updateElapsedTime()
             // 1초마다 다시 실행
-            handler.postDelayed(updateTimeRunnable, 1000)
+            handler.postDelayed(updateTimeRunnable, 1000*60)
         }
 
         // Runnable을 시작
@@ -116,8 +116,10 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     }
     private fun updateElapsedTime() {
         // 경과 시간을 계산
+        // 경과 시간을 계산
         val elapsedTimeMillis = System.currentTimeMillis() - collectionStartTimeMillis
-        val elapsedTimeMinutes = elapsedTimeMillis / (1000 * 60).toFloat() // 분 단위로 변환
+        // 경과 시간을 0.01 단위로 표시
+        val elapsedTimeMinutes = elapsedTimeMillis / (1000 * 60 * 100).toFloat()
 
         Log.d(TAG, "time : $elapsedTimeMinutes [${String.format("%.2f", elapsedTimeMinutes)}]")
         // 소수점 두 자리까지 표현하여 UI 업데이트
@@ -149,23 +151,27 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         lineDataSet.lineWidth = 1f
         lineDataSet.setDrawCircles(false)
         lineDataSet.setDrawValues(false)
+        lineDataSet.valueTextColor = ContextCompat.getColor(this, R.color.white) // 라벨(값) 색상 설정
 
         // BarDataSet 설정
         barDataSet = BarDataSet(mutableListOf(), "Power Output")
         barDataSet.color = ContextCompat.getColor(this, R.color.color_7)
         barDataSet.setDrawValues(false)
+        barDataSet.valueTextColor = ContextCompat.getColor(this, R.color.white) // 라벨(값) 색상 설정
 
 
         // X축을 시간 단위로 설정
         xAxis.granularity = 1f
         xAxis.axisMinimum = 0f // 최소값을 0으로 설정
         xAxis.axisMaximum = 23f // 최대값을 23으로 설정 (0~23시)
-
+        // X축 라벨 색상 변경
+        xAxis.textColor = ContextCompat.getColor(this, R.color.white) // 원하는 색상으로 변경
         // 차트 왼쪽 세로 라벨 (0~600)kw 값정의
         yAxisLeft.granularity = 100f
         yAxisLeft.axisMinimum = 0f
         yAxisLeft.axisMaximum = 600f
-
+        // X축 라벨 색상 변경
+        yAxisLeft.textColor = ContextCompat.getColor(this, R.color.white) // 원하는 색상으로 변경
         //하단 라벨 벨류 정의
         xAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
@@ -439,7 +445,7 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun processBluetoothData(data: List<Float>) {
         if (data.size < 4) return
-
+        if (data.size  > 4) return
         val firstData = data[0] //1번데이터
         val thirdData = data[2] //3번 데이터
         val fourthData = data[3] //4번 데이터
@@ -504,6 +510,9 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         dailyFourthDataList.add(fourthData)
         val averageFourthData = dailyFourthDataList.average().toFloat()
         binding.tvTodayPower.text = "$averageFourthData" //금일발전량 평균값 기획서 4번
+        Log.d(TAG,"sum::${dailyFourthDataList.sum()} [${dailyFourthDataList.size}] [${dailyFourthDataList.sum() /dailyFourthDataList.size }]")
+
+        Log.d(TAG,"dailyFourthDataList:${dailyFourthDataList.toList()} averageFourthData $averageFourthData")
 
         // 버튼 색상 업데이트
         updateButtonColors(firstData)
