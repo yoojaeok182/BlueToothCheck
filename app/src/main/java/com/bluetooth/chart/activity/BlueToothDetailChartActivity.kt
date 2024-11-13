@@ -125,10 +125,13 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         val elapsedTimeMillis = System.currentTimeMillis() - collectionStartTimeMillis
         // 경과 시간을 0.01 단위로 표시
         val elapsedTimeMinutes = elapsedTimeMillis / (1000 * 60 * 100).toFloat()
+        val minutes = (elapsedTimeMillis / (1000 * 60)) % 60
+        val hours = (elapsedTimeMillis / (1000 * 60 * 60))
 
         Log.d(TAG, "time : $elapsedTimeMinutes [${String.format("%.2f", elapsedTimeMinutes)}]")
         // 소수점 두 자리까지 표현하여 UI 업데이트
-        binding.tvTodayPowerTime.text = String.format("%.2f", elapsedTimeMinutes)
+        binding.tvTodayPowerTime.text = String.format("%02d.%02d",hours.toInt(),minutes.toInt())
+        //binding.tvTodayPowerTime.text = String.format("%.2f", elapsedTimeMinutes)
     }
 
     private fun setupUI() {
