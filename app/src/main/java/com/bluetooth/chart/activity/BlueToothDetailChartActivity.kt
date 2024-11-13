@@ -64,7 +64,12 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
     // Runnable이 실행 중인지 확인하는 변수
     private var isUpdateRunnableRunning = false
 
-
+    private var lastReceivedHour: Int? = null // 이전에 받은 데이터의 시간(시)을 저장하는 변수
+    // 현재 시간을 시(hour) 단위로 반환하는 함수
+    private fun getCurrentHour(): Int {
+        val calendar = Calendar.getInstance()
+        return calendar.get(Calendar.HOUR_OF_DAY)
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityBluetoothChartBinding.inflate(layoutInflater)
@@ -333,12 +338,6 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
             }
             addEntryToChartImmediately(lastReceivedData)
 
-// 타이머가 처음 시작될 때만 startChartUpdateTimer 호출
-            if (!isReceivingData) {
-                isReceivingData = true
-                startChartUpdateTimer() // 타이머 시작
-            }
-
         }
     }
 
@@ -399,24 +398,20 @@ class BlueToothDetailChartActivity : AppCompatActivity() {
         if (!isFirstDataReceived) {
             addHourlyAverageToChart()
             isFirstDataReceived = true
+            lastReceivedHour = getCurrentHour() // 첫 데이터 수신 시간(시) 기록
+
         }
-//        startChartUpdateTimer() // 1시간 간격으로 차트를 업데이트하는 타이머 시작
+// 시간 비교를 통해 시간이 달라졌을 때 업데이트 로직 실행
+        val currentHour = getCurrentHour()
+        lastReceivedHour?.let { previousHour ->
+            if (currentHour != previousHour) { // 시간이 달라졌는지 확인
+                addHourlyAverageToChart() // 한 시간 동안 수집한 데이터의 평균을 차트에 추가
+                dataBuffer.clear() // 데이터 버퍼 초기화
+                lastReceivedHour = currentHour // 시간 갱신
+            }
+        }
     }
     // 1시간 차트 업데이트
-    private fun startChartUpdateTimer() {
-        scope.launch {
-            while (true) { // 타이머가 무한히 반복되도록 설정
-                delay(chartUpdateInterval) // 30초 대기
-
-                // 30초 동안 수집된 데이터를 차트에 추가
-                addHourlyAverageToChart() // 1시간 동안 수집한 데이터의 평균을 차트에 추가
-
-                // 데이터 버퍼 초기화
-                dataBuffer.clear()
-            }
-
-        }
-    }
 
     //받아온 데이터를 String 데이터로 변환
     private fun parseBLEData(data: ByteArray): List<Float> {
